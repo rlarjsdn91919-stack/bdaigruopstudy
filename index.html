@@ -262,6 +262,97 @@ tfoot td{font-weight:var(--fw-bold);background:var(--color-surface-soft);}
 .crumb{display:flex;align-items:center;gap:var(--sp-1);font-size:var(--fs-small);color:var(--color-text-muted);}
 .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;}
 
+/* ── 성장 여정 (Team → Share → Challenge → Shine) ── */
+.journey-head{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;}
+.journey-flow{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;
+  font:var(--fw-x) var(--fs-label)/1 var(--font);color:var(--color-text-strong);letter-spacing:-.01em;}
+.journey-flow i{font-style:normal;color:var(--gray-400);font-weight:var(--fw-bold);}
+.journey-note{max-width:34ch;text-align:right;}
+.journey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-4);
+  list-style:none;margin:0;padding:0;}
+.jstep{display:flex;flex-direction:column;gap:var(--sp-3);min-width:0;}
+.jrail{position:relative;height:40px;display:flex;align-items:center;justify-content:center;}
+.jrail::before{content:"";position:absolute;top:50%;left:calc(-50% - var(--sp-4));right:50%;
+  height:2px;background:var(--color-border);transform:translateY(-50%);}
+.journey > .jstep:first-child .jrail::before{display:none;}
+.jstep.is-done .jrail::before,.jstep.is-now .jrail::before{background:var(--color-accent);}
+.jnode{position:relative;width:40px;height:40px;border-radius:var(--r-pill);
+  background:var(--color-surface);border:2px solid var(--color-border);
+  display:flex;align-items:center;justify-content:center;color:var(--color-text-disabled);}
+.jstep.is-done .jnode{background:var(--color-accent);border-color:var(--color-accent);color:var(--gray-0);}
+.jstep.is-now .jnode{border-color:var(--color-accent);color:var(--color-accent);
+  box-shadow:0 0 0 5px var(--color-focus);}
+.jcard{flex:1;background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--r-lg);padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2);}
+.jstep.is-now .jcard{border-color:var(--color-accent);box-shadow:var(--sh-md);}
+.jstep.is-next .jcard{background:var(--gray-25);}
+.jen{font:var(--fw-x) var(--fs-h2)/1.2 var(--font);color:var(--color-text-strong);letter-spacing:-.02em;}
+.jstep.is-next .jen{color:var(--color-text-muted);}
+.jko{font:var(--fw-bold) var(--fs-body)/1.4 var(--font);color:var(--color-accent);}
+.jstep.is-next .jko{color:var(--color-text-disabled);}
+@media (max-width:960px){
+  .journey{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-5) var(--sp-4);}
+  .journey > .jstep:nth-child(odd) .jrail::before{display:none;}
+}
+@media (max-width:640px){
+  .journey-note{max-width:none;text-align:left;}
+  .journey{grid-template-columns:1fr;}
+  .journey .jrail::before{display:none;}
+  .jstep{flex-direction:row;align-items:flex-start;gap:var(--sp-3);}
+  .jrail{height:auto;padding-top:var(--sp-1);}
+}
+
+/* ── 조별활동 캘린더 ──────────────────────── */
+.cal-wrap{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:var(--sp-5);align-items:start;}
+@media (max-width:960px){.cal-wrap{grid-template-columns:1fr;}}
+.cal-nav{display:flex;align-items:center;gap:var(--sp-2);}
+.cal-title{font:var(--fw-x) var(--fs-h3)/1 var(--font);color:var(--color-text-strong);
+  min-width:120px;text-align:center;font-variant-numeric:tabular-nums;}
+.icon-btn{width:32px;height:32px;border-radius:var(--r-md);border:1px solid var(--color-border);
+  background:var(--color-surface);color:var(--color-text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background var(--dur) var(--ease);}
+.icon-btn:hover:not(:disabled){background:var(--color-surface-soft);color:var(--color-text-strong);}
+.icon-btn:disabled{color:var(--gray-300);cursor:not-allowed;}
+.icon-btn.rot svg{transform:rotate(180deg);}
+.cal-table{width:100%;table-layout:fixed;border-collapse:collapse;}
+.cal-table th{text-align:center;padding:var(--sp-2) 0;font-size:var(--fs-caption);
+  border-bottom:1px solid var(--color-border);white-space:nowrap;}
+.cal-table th.sun{color:var(--danger-fg);} .cal-table th.sat{color:var(--blue-600);}
+.cal-table td{padding:0;border:1px solid var(--color-border);vertical-align:top;}
+.cal-table tbody tr:hover{background:none;}
+.cday{min-height:96px;padding:5px;display:flex;flex-direction:column;gap:3px;height:100%;}
+.cday-n{font:var(--fw-bold) var(--fs-caption)/18px var(--font);color:var(--color-text-muted);
+  width:18px;height:18px;text-align:center;border-radius:var(--r-pill);flex:none;
+  font-variant-numeric:tabular-nums;}
+.cday.sun .cday-n{color:var(--danger-fg);} .cday.sat .cday-n{color:var(--blue-600);}
+.cday.is-out{opacity:.4;}
+.cday.is-today .cday-n{background:var(--color-primary);color:var(--gray-0);}
+.cday.sp-act{background:#edf4ff;} .cday.sp-grade{background:#fff6e6;} .cday.sp-recruit{background:#f4efff;}
+.cev{font:var(--fw-semi) var(--fs-caption)/1.35 var(--font);border-radius:4px;padding:2px 5px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cdots{display:none;gap:3px;}
+.cdots i{width:5px;height:5px;border-radius:var(--r-pill);display:block;}
+.k-start{background:var(--blue-50);color:var(--blue-600);}
+.k-due{background:var(--danger-bg);color:var(--danger-fg);}
+.k-grade{background:var(--warning-bg);color:var(--warning-fg);}
+.k-open{background:var(--info-bg);color:var(--info-fg);}
+.k-etc{background:var(--gray-100);color:var(--gray-700);}
+.cal-legend{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);align-items:center;}
+.cal-legend span{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-caption);
+  color:var(--color-text-muted);}
+.cal-legend b{width:10px;height:10px;border-radius:3px;display:block;}
+.cal-list{display:flex;flex-direction:column;}
+.cal-item{display:flex;gap:var(--sp-3);padding:var(--sp-3) 0;align-items:flex-start;
+  border-top:1px solid var(--color-border);}
+.cal-item:first-of-type{border-top:0;}
+.cal-date{font:var(--fw-x) var(--fs-small)/1.4 var(--font);color:var(--color-text-strong);
+  font-variant-numeric:tabular-nums;white-space:nowrap;min-width:52px;}
+@media (max-width:640px){
+  .cday{min-height:52px;padding:3px;}
+  .cday .cev{display:none;}
+  .cdots{display:flex;}
+}
+
 /* ── 모달 · 토스트 ────────────────────────── */
 .overlay{position:fixed;inset:0;z-index:var(--z-modal);background:rgba(7,22,42,.4);
   display:flex;align-items:center;justify-content:center;padding:var(--sp-4);}
@@ -341,10 +432,22 @@ const CLS = id => (CLASSES.find(c=>c.id===id)||{}).name || '분반 무관 (전 �
 
 /* 활동 기간(TeamActivityPeriod) — 13기 실행 계획 타임라인 */
 const PERIODS = [
-  {id:'p9',  label:'9월',  span:'09.17 ~ 10.02', due:'2026-10-02', grade:'10.03 ~ 10.05', open:'2026-10-08', theme:'Team · 함께 시작하다', state:'진행 중'},
-  {id:'p11', label:'11월', span:'11.02 ~ 11.27', due:'2026-11-27', grade:'11.28 ~ 11.30', open:'2026-11-30', theme:'Share · 함께 나눈다', state:'예정'},
-  {id:'p1',  label:'1월',  span:'01.04 ~ 01.29', due:'2027-01-29', grade:'01.30 ~ 01.31', open:'2027-01-31', theme:'Challenge · 함께 도전하다', state:'예정'},
-  {id:'p2',  label:'2월',  span:'02.01 ~ 02.26', due:'2027-02-26', grade:'02.27', open:'2027-02-27', theme:'Shine · 함께 빛나다', state:'예정'}
+  {id:'p9',  label:'9월',  span:'09.17 ~ 10.02', start:'2026-09-17', end:'2026-10-02', due:'2026-10-02',
+   grade:'10.03 ~ 10.05', gstart:'2026-10-03', gend:'2026-10-05', open:'2026-10-08',
+   theme:'Team · 함께 시작하다', en:'Team', ko:'함께 시작하다', ic:'users',
+   desc:'조를 편성하고 첫 모임과 활동 계획서로 팀의 방향을 맞춰요.', state:'진행 중'},
+  {id:'p11', label:'11월', span:'11.02 ~ 11.27', start:'2026-11-02', end:'2026-11-27', due:'2026-11-27',
+   grade:'11.28 ~ 11.30', gstart:'2026-11-28', gend:'2026-11-30', open:'2026-11-30',
+   theme:'Share · 함께 나눈다', en:'Share', ko:'함께 나눈다', ic:'message',
+   desc:'문제·자료·진척을 서로 나누며 팀의 학습 리듬을 만들어요.', state:'예정'},
+  {id:'p1',  label:'1월',  span:'01.04 ~ 01.29', start:'2027-01-04', end:'2027-01-29', due:'2027-01-29',
+   grade:'01.30 ~ 01.31', gstart:'2027-01-30', gend:'2027-01-31', open:'2027-01-31',
+   theme:'Challenge · 함께 도전하다', en:'Challenge', ko:'함께 도전하다', ic:'flag',
+   desc:'어려운 문제와 실제 제출에 팀으로 부딪혀 한 단계 올라서요.', state:'예정'},
+  {id:'p2',  label:'2월',  span:'02.01 ~ 02.26', start:'2027-02-01', end:'2027-02-26', due:'2027-02-26',
+   grade:'02.27', gstart:'2027-02-27', gend:'2027-02-27', open:'2027-02-27',
+   theme:'Shine · 함께 빛나다', en:'Shine', ko:'함께 빛나다', ic:'trophy',
+   desc:'결과와 회고를 공유하고 우수조로 함께 빛나며 마무리해요.', state:'예정'}
 ];
 
 /* 트랙별 M1·M2 정의 */
@@ -466,6 +569,36 @@ const SCHEDULE = [
   {t:'11월 활동일지 제출 마감', d:'2026-11-27', tag:'제출'}
 ];
 
+/* 조별활동 캘린더 — 홈 탭 캘린더에 표시할 일정 · 기간 */
+const CAL_MONTHS = ['2026-09','2026-10','2026-11','2026-12','2027-01','2027-02'];
+const CAL = [
+  {d:'2026-09-16', t:'조 편성 결과 · 가이드라인 공지', k:'etc'},
+  {d:'2026-09-17', t:'9월 조별활동 시작', k:'start', pid:'p9'},
+  {d:'2026-10-02', t:'9월 활동일지 · 후기 제출 마감', k:'due', pid:'p9'},
+  {d:'2026-10-03', to:'2026-10-05', t:'9월 채점 기간', k:'grade', pid:'p9'},
+  {d:'2026-10-08', t:'9월 채점표 공지', k:'open', pid:'p9'},
+  {d:'2026-10-12', to:'2026-10-30', t:'조별활동 추가모집 (휴회기간)', k:'etc'},
+  {d:'2026-11-01', t:'11월 가이드라인 업로드', k:'etc'},
+  {d:'2026-11-02', t:'11월 조별활동 시작', k:'start', pid:'p11'},
+  {d:'2026-11-27', t:'11월 활동일지 · 후기 제출 마감', k:'due', pid:'p11'},
+  {d:'2026-11-28', to:'2026-11-30', t:'11월 채점 기간', k:'grade', pid:'p11'},
+  {d:'2026-11-30', t:'11월 채점표 공지', k:'open', pid:'p11'},
+  {d:'2027-01-04', t:'1월 조별활동 시작', k:'start', pid:'p1'},
+  {d:'2027-01-29', t:'1월 활동일지 · 후기 제출 마감', k:'due', pid:'p1'},
+  {d:'2027-01-30', to:'2027-01-31', t:'1월 채점 기간', k:'grade', pid:'p1'},
+  {d:'2027-01-31', t:'1월 채점표 공지', k:'open', pid:'p1'},
+  {d:'2027-02-01', t:'2월 조별활동 시작', k:'start', pid:'p2'},
+  {d:'2027-02-26', t:'2월 활동일지 · 최종 회고 제출 마감', k:'due', pid:'p2'},
+  {d:'2027-02-27', t:'2월 채점 · 최종 채점표 공지', k:'open', pid:'p2'},
+  {d:'2027-02-28', t:'13기 조별활동 종료', k:'etc'}
+];
+const CAL_SPANS = PERIODS.map(p=>({from:p.start, to:p.end, k:'act', label:p.label+' 활동 기간'}))
+  .concat(PERIODS.map(p=>({from:p.gstart, to:p.gend, k:'grade', label:p.label+' 채점 기간'})))
+  .concat([{from:'2026-10-12', to:'2026-10-30', k:'recruit', label:'추가모집 기간'}]);
+const CAL_KIND = {
+  start:{t:'활동 시작'}, due:{t:'제출 마감'}, grade:{t:'채점'}, open:{t:'채점표 공지'}, etc:{t:'운영'}
+};
+
 const QNAS = [
   {id:'q1', title:'[조별활동] 복습 자료 형식은 어디까지 인정되나요?', by:'김다현', date:'2026-09-20', state:'답변 완료',
    ans:'ipynb·코랩·워드·노션·PPT 모두 인정됩니다. 수업 정리 또는 발표 자료라는 점만 확인되면 됩니다.'},
@@ -482,6 +615,7 @@ const S = {
   route:{v:'dashboard'},
   f:{ logs:{cls:'all', track:'all', mode:'all', q:''}, rev:{pid:'all', track:'all', cls:'all'} },
   learningEmpty:false,
+  cal:'2026-09',
   modal:null,
   grievances:[{id:'gr1', title:'조원 2명이 3주째 응답이 없습니다', date:'2026-09-22', state:'처리 중', reply:'조장님 연락처로 개별 안내드렸습니다. 다음 주까지 무응답 시 조 병합을 검토합니다.'}],
   openNotice:null
@@ -705,6 +839,138 @@ function viewClass(cid){
 }
 
 /* ─────────────────────────────────────────────
+   Concept — BDAI 조별 성장 여정 (Team → Share → Challenge → Shine)
+   ───────────────────────────────────────────── */
+const TODAY_YMD = TODAY.toISOString().slice(0,10);
+function periodState(p){
+  if(TODAY_YMD > p.end) return 'done';
+  if(TODAY_YMD >= p.start) return 'now';
+  return 'next';
+}
+function journeyBoard(){
+  const st = {done:{t:'활동 종료', b:'badge-muted'}, now:{t:'진행 중', b:'badge-brand'}, next:{t:'예정', b:'badge-muted'}};
+  return `<section class="card card-lg stack-sm">
+    <div class="sec-head">
+      <div class="stack-sm">
+        <div class="journey-head">
+          <span class="badge badge-info">Concept</span>
+          <h2 class="h2">BDAI 조별 성장 여정</h2>
+        </div>
+        <div class="journey-flow">${PERIODS.map(p=>`<span>${p.en}</span>`).join('<i>\u2192</i>')}</div>
+      </div>
+      <p class="small journey-note">9월부터 2월까지 네 번의 활동 기간이
+        하나의 성장 곡선으로 이어집니다.</p>
+    </div>
+    <ol class="journey" style="margin-top:var(--sp-2)">
+      ${PERIODS.map((p,i)=>{
+        const k = periodState(p);
+        return `<li class="jstep is-${k}">
+          <div class="jrail"><span class="jnode">${k==='done'?ic('check',20):ic(p.ic,20)}</span></div>
+          <div class="jcard">
+            <div class="row-between">
+              <span class="badge badge-sm ${k==='now'?'badge-brand':'badge-muted'}">STEP ${i+1} · ${p.label}</span>
+              <span class="badge badge-sm ${st[k].b}">${st[k].t}</span>
+            </div>
+            <p class="jen">${p.en}</p>
+            <p class="jko">${p.ko}</p>
+            <p class="caption num">${p.span}</p>
+            <p class="small" style="margin-top:var(--sp-1)">${p.desc}</p>
+          </div>
+        </li>`;
+      }).join('')}
+    </ol>
+  </section>`;
+}
+
+/* ─────────────────────────────────────────────
+   조별활동 캘린더 — 홈 탭
+   ───────────────────────────────────────────── */
+const ymd = (y,m,dd)=>`${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+function spanOf(key){ return CAL_SPANS.find(sp=>key>=sp.from && key<=sp.to); }
+function calMonthEvents(m){ return CAL.filter(e=>e.d.slice(0,7)===m).sort((a,b)=>a.d<b.d?-1:1); }
+function calRangeLabel(e){ return e.to ? `${fmt(e.d).slice(3)} ~ ${fmt(e.to).slice(3)}` : fmt(e.d).slice(3); }
+function calendarBoard(){
+  const m = S.cal, i = CAL_MONTHS.indexOf(m);
+  const [Y, M] = m.split('-').map(Number);
+  const lead = new Date(Y, M-1, 1).getDay();
+  const dim = new Date(Y, M, 0).getDate(), prevDim = new Date(Y, M-1, 0).getDate();
+  const cells = [];
+  for(let n = 1 - lead; n <= 42 - lead; n++){
+    let y = Y, mo = M, day = n, out = false;
+    if(n < 1){ out = true; day = prevDim + n; mo = M-1; if(mo < 1){ mo = 12; y = Y-1; } }
+    else if(n > dim){ out = true; day = n - dim; mo = M+1; if(mo > 12){ mo = 1; y = Y+1; } }
+    cells.push({key:ymd(y,mo,day), day, out});
+  }
+  const weeks = [];
+  for(let w = 0; w < 42; w += 7) weeks.push(cells.slice(w, w+7));
+  while(weeks.length > 4 && weeks[weeks.length-1].every(c=>c.out)) weeks.pop();
+
+  const dows = ['일','월','화','수','목','금','토'];
+  const list = calMonthEvents(m);
+
+  return `<section class="card card-lg stack-sm">
+    <div class="sec-head">
+      <div><h2 class="h2">조별활동 캘린더</h2>
+        <p class="small" style="margin-top:var(--sp-1)">활동 기간 · 제출 마감 · 채점 일정을 한 달 단위로 확인해요.</p></div>
+      <div class="cal-nav">
+        <button class="icon-btn rot" type="button" data-act="cal" data-m="${CAL_MONTHS[i-1]||''}"
+          ${i<=0?'disabled':''} aria-label="이전 달">${ic('chevron',16)}</button>
+        <span class="cal-title">${Y}년 ${M}월</span>
+        <button class="icon-btn" type="button" data-act="cal" data-m="${CAL_MONTHS[i+1]||''}"
+          ${i>=CAL_MONTHS.length-1?'disabled':''} aria-label="다음 달">${ic('chevron',16)}</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-act="cal" data-m="${TODAY_YMD.slice(0,7)}">오늘</button>
+      </div>
+    </div>
+
+    <div class="cal-wrap" style="margin-top:var(--sp-2)">
+      <div class="stack-sm">
+        <table class="cal-table">
+          <caption class="skip">${Y}년 ${M}월 조별활동 일정</caption>
+          <thead><tr>${dows.map((d2,x)=>`<th scope="col" class="${x===0?'sun':x===6?'sat':''}">${d2}</th>`).join('')}</tr></thead>
+          <tbody>${weeks.map(w=>`<tr>${w.map((c,x)=>{
+            const sp = c.out ? null : spanOf(c.key);
+            const evs = CAL.filter(e=>e.d===c.key);
+            const cls = ['cday', x===0?'sun':x===6?'sat':'', c.out?'is-out':'',
+              c.key===TODAY_YMD?'is-today':'', sp?'sp-'+sp.k:''].filter(Boolean).join(' ');
+            return `<td><div class="${cls}">
+              <span class="cday-n">${c.day}</span>
+              ${c.out?'':evs.map(e=>`<span class="cev k-${e.k}" title="${esc(e.t)}">${esc(e.t)}</span>`).join('')}
+              ${c.out||!evs.length?'':`<span class="cdots">${evs.map(e=>`<i class="k-${e.k}" style="background:currentColor"></i>`).join('')}</span>`}
+            </div></td>`;
+          }).join('')}</tr>`).join('')}</tbody>
+        </table>
+        <div class="cal-legend">
+          <span><b style="background:#edf4ff;border:1px solid var(--blue-100)"></b>활동 기간</span>
+          <span><b style="background:#fff6e6;border:1px solid var(--warning-bd)"></b>채점 기간</span>
+          <span><b style="background:#f4efff;border:1px solid var(--info-bd)"></b>추가모집</span>
+          <span><b style="background:var(--danger-bg);border:1px solid var(--danger-bd)"></b>제출 마감</span>
+          <span><b style="background:var(--blue-50);border:1px solid var(--blue-100)"></b>활동 시작</span>
+        </div>
+      </div>
+
+      <div class="card stack-sm">
+        <div class="row" style="gap:var(--sp-2)">${ic('calendar',16)}<h3 class="h3" style="font-size:var(--fs-lead)">${M}월 일정</h3></div>
+        ${list.length ? `<div class="cal-list">${list.map(e=>{
+          const n = dday(e.to||e.d);
+          return `<div class="cal-item"${n<0?' style="opacity:.55"':''}>
+            <span class="cal-date">${calRangeLabel(e)}</span>
+            <div style="min-width:0;flex:1">
+              <p class="label">${esc(e.t)}</p>
+              <div class="row" style="gap:var(--sp-2);margin-top:var(--sp-1)">
+                <span class="badge badge-sm k-${e.k}">${CAL_KIND[e.k].t}</span>
+                <span class="caption num">${n<0?'지난 일정':(n===0?'D-DAY':'D-'+n)}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}</div>`
+        : `<div class="empty" style="padding:var(--sp-8) var(--sp-2)">${ic('calendar',28)}
+            <p>이 달에는 예정된 조별활동 일정이 없어요.</p></div>`}
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ─────────────────────────────────────────────
    화면 3 — Learning > 조별활동
    ───────────────────────────────────────────── */
 function viewLearning(){
@@ -725,6 +991,8 @@ function viewLearning(){
         <div><p class="label">${f.t}</p><p class="small" style="margin-top:var(--sp-1)">${f.d}</p></div></div>`).join('')}</div>
     </section>
 
+    ${journeyBoard()}
+
     <section class="stack-sm">
       <div class="sec-head">
         <div><h2 class="h2">나의 조별활동</h2><p class="small" style="margin-top:var(--sp-1)">신청한 조별활동을 분반 복습과 공모전 준비 단위로 확인하고 관리할 수 있어요.</p></div>
@@ -739,6 +1007,8 @@ function viewLearning(){
             <p>조별활동에 참여하고 팀원들과 함께 성장해보세요!</p>
             <a class="btn btn-soft btn-lg" href="#/community/notice">조별활동 공지</a></div></div>`}
     </section>
+
+    ${calendarBoard()}
 
     <section class="stack-sm">
       <div class="sec-head">
@@ -1334,6 +1604,7 @@ document.addEventListener('click', e=>{
   else if(act==='like'){ const r = REVIEWS.find(x=>x.id===t.dataset.id);
     r.liked = !r.liked; r.likes += r.liked?1:-1; render(); }
   else if(act==='toggle-empty'){ S.learningEmpty = !S.learningEmpty; render(); }
+  else if(act==='cal'){ if(t.dataset.m){ S.cal = t.dataset.m; render(); } }
   else if(act==='open-notice'){ S.openNotice = S.openNotice===t.dataset.id ? null : t.dataset.id; render(); }
   else if(act==='modal'){ S.modal = {kind:t.dataset.kind, gid:t.dataset.gid}; layer(); }
   else if(act==='close'){ S.modal=null; layer(); }
