@@ -364,6 +364,22 @@ tfoot td{font-weight:var(--fw-bold);background:var(--color-surface-soft);}
   border-radius:var(--r-pill);font-size:var(--fs-label);font-weight:var(--fw-semi);box-shadow:var(--sh-md);}
 .skip{position:absolute;left:-9999px;}
 .skip:focus{position:static;display:inline-block;padding:var(--sp-2);}
+/* ── 제출 폼 (활동일지 · 후기) ──────────────── */
+.fset{border:1px solid var(--color-border);border-radius:var(--r-lg);
+  padding:var(--sp-4);margin:0;display:flex;flex-direction:column;gap:var(--sp-3);}
+.fset > legend{padding:0 var(--sp-2);font-size:var(--fs-caption);
+  font-weight:var(--fw-bold);color:var(--color-text-strong);}
+.chkline{display:inline-flex;align-items:center;gap:var(--sp-2);
+  font-size:var(--fs-label);cursor:pointer;}
+.qmeter{display:flex;align-items:center;gap:var(--sp-2);
+  font-size:var(--fs-caption);color:var(--color-text-disabled);}
+.qbar{flex:1;height:4px;border-radius:var(--r-pill);background:var(--gray-100);overflow:hidden;}
+.qbar > i{display:block;height:100%;width:0;border-radius:var(--r-pill);
+  background:var(--gray-400);transition:width var(--dur) var(--ease);}
+.qmeter .ok{color:var(--success-fg);font-weight:var(--fw-semi);}
+.qmeter .low{color:var(--warning-fg);}
+.qbar > i.ok{background:var(--success-fg);}
+.rot{display:flex;flex-wrap:wrap;gap:var(--sp-2);}
 </style>
 <a class="skip" href="#main">본문 바로가기</a>
 <header class="header">
@@ -495,24 +511,27 @@ const MYGROUPS = () => GROUPS.filter(g=>g.mine);
 /* 채점 내역 — 규칙 단위 산출 내역(원칙 1) */
 const SCORES = {
   g1:{ p9:{items:[
-        {id:'M1',label:'필수1 · 활동 계획서 작성',score:1.0,judge:'검수',note:'요건대로 제출'},
-        {id:'M2',label:'필수2 · 핵심 개념 3개 복습',score:0.5,judge:'검수',note:'개념 2개만 정리 — 헷갈린 포인트 누락'},
-        {id:'M3',label:'만남 요건 (오프라인 1회 또는 온라인 2회)',score:1.0,judge:'자동',note:'오프라인 1회 · 온라인 1회'},
-        {id:'M4',label:'증빙·참여 (사진·복습자료·참여 과반)',score:0.5,judge:'자동',note:'복습 자료 미첨부'},
+        {id:'M1',label:'필수1 · 활동 계획서 작성',score:0.8,judge:'반자동',note:'4항목 전부 충족'},
+        {id:'M2',label:'필수2 · 핵심 개념 3개 복습',score:0.4,judge:'반자동',note:'4항목 중 2항목 — 개념 ③ · 헷갈린 포인트 누락'},
+        {id:'M3',label:'만남 요건 (오프라인 1회 또는 온라인 2회)',score:0.8,judge:'자동',note:'오프라인 1회 · 온라인 1회'},
+        {id:'M4',label:'증빙·참여 (사진·복습자료·참여 과반)',score:0.4,judge:'자동',note:'복습 자료 미첨부'},
+        {id:'M5',label:'월별 조 후기 (집필 정우진)',score:0.8,judge:'자동',note:'712자 · 카페 URL 정상'},
         {id:'E',label:'가산 · 자율활동 1건 (조 이름 만들기)',score:0.5,judge:'검수',note:'사진 1장 + 20자 충족'},
         {id:'P1',label:'지각 제출',score:0,judge:'자동',note:'정상 제출'}],graded:'운영진 대현',at:'2026-10-05'} },
   g2:{ p9:{items:[
-        {id:'M1',label:'필수1 · 공모전 참가 계획서',score:1.0,judge:'검수',note:'S2 신청·착수 도달'},
-        {id:'M2',label:'필수2 · 후보 3개 이상 비교 회의',score:1.0,judge:'검수',note:'후보 4개 비교표 제출'},
-        {id:'M3',label:'만남 요건',score:1.0,judge:'자동',note:'온라인 3회'},
-        {id:'M4',label:'증빙·참여',score:1.0,judge:'자동',note:'3요소 충족 · 참여 4/4'},
+        {id:'M1',label:'필수1 · 공모전 참가 계획서',score:0.8,judge:'반자동',note:'4항목 전부 충족 · S2 착수 도달'},
+        {id:'M2',label:'필수2 · 후보 3개 이상 비교 회의',score:0.8,judge:'반자동',note:'6항목 전부 충족 · 후보 4개 비교'},
+        {id:'M3',label:'만남 요건',score:0.8,judge:'자동',note:'온라인 3회'},
+        {id:'M4',label:'증빙·참여',score:0.8,judge:'자동',note:'3요소 충족 · 참여 4/4'},
+        {id:'M5',label:'월별 조 후기 (집필 박지훈)',score:0.8,judge:'자동',note:'768자 · 카페 URL 정상'},
         {id:'E',label:'가산 · 공모전 인증 1건',score:0.5,judge:'검수',note:'참가 신청 캡처 확인'},
         {id:'P1',label:'지각 제출',score:0,judge:'자동',note:'정상 제출'}],graded:'운영진 건우',at:'2026-10-04'} },
   g3:{ p9:{items:[
-        {id:'M1',label:'필수1 · 공모전 참가 계획서',score:0.5,judge:'검수',note:'주제 선정(S1)까지만 — 신청 미완료'},
-        {id:'M2',label:'필수2 · 후보 3개 이상 비교 회의',score:1.0,judge:'검수',note:'후보 3개 비교 완료'},
-        {id:'M3',label:'만남 요건',score:0.5,judge:'자동',note:'온라인 1회만'},
-        {id:'M4',label:'증빙·참여',score:0.5,judge:'자동',note:'활동 사진 누락'},
+        {id:'M1',label:'필수1 · 공모전 참가 계획서',score:0.4,judge:'반자동',note:'4항목 중 2항목 — 팀 목표·전체 일정 누락 (S1에서 정체)'},
+        {id:'M2',label:'필수2 · 후보 3개 이상 비교 회의',score:0.8,judge:'반자동',note:'6항목 전부 충족'},
+        {id:'M3',label:'만남 요건',score:0.4,judge:'자동',note:'온라인 1회만'},
+        {id:'M4',label:'증빙·참여',score:0.4,judge:'자동',note:'활동 사진 누락'},
+        {id:'M5',label:'월별 조 후기 (집필 윤도현)',score:0.4,judge:'자동',note:'438자 — 600자 미달 · Q1 고유명사 없음으로 검수 큐'},
         {id:'E',label:'가산',score:0,judge:'—',note:'인정 건 없음'},
         {id:'P1',label:'지각 제출 (마감 +1일)',score:-0.5,judge:'자동',note:'10.03 22:14 제출'}],graded:'운영진 건우',at:'2026-10-05'} }
 };
@@ -694,9 +713,13 @@ function reviewCard(r, compact){
     <p class="small">${esc(g.name)}</p>
     <div class="row" style="gap:var(--sp-2)">
       <span class="avatar">${esc(r.mask.slice(0,1))}</span>
-      <span class="label">${esc(r.mask)} 조원</span>
+      <span class="label">${esc(r.mask)} 집필</span>
     </div>
-    <div class="stars">${ic('star',16)}<span class="num">${r.rating.toFixed(1)}</span></div>
+    <div class="row" style="gap:var(--sp-2)">
+      <span class="badge ${(r.score==null||r.score===.8)?'badge-success':(r.score===0?'badge-danger':'badge-warning')} badge-sm num">M5 ${money(r.score==null?.8:r.score)}점</span>
+      ${r.chars?`<span class="caption num">${r.chars}자</span>`:''}
+      ${r.queue&&r.queue.length?`<span class="badge badge-warning badge-sm">검수 큐 ${r.queue.length}</span>`:''}
+    </div>
     <p style="font-size:var(--fs-label);line-height:var(--lh-loose)">${esc(r.text)}</p>
     <div class="row-between" style="margin-top:auto">
       <span class="caption num">작성일 ${fmt(r.date)}</span>
@@ -1247,7 +1270,7 @@ function tabScore(g){
         <td>${esc(it.note)}</td>
         <td class="t-num">${it.score>0?'+':''}${money(it.score)}</td></tr>`);
     });
-    rows.push(`<tr><td colspan="4" style="background:var(--color-surface-soft);font-weight:var(--fw-bold)">${p.label} 합계 (필수 4.0 + 가산 1.0 − 지각)</td>
+    rows.push(`<tr><td colspan="4" style="background:var(--color-surface-soft);font-weight:var(--fw-bold)">${p.label} 합계 (필수 M1~M5 4.0 + 가산 1.0 − 지각)</td>
       <td class="t-num" style="background:var(--color-surface-soft);font-weight:var(--fw-bold)">${money(monthlyScore(g.id,p.id))}</td></tr>`);
   });
   return `<div class="stats">
@@ -1259,7 +1282,7 @@ function tabScore(g){
     <section class="card card-lg stack-sm">
       <div class="sec-head"><h2 class="h3">월별 채점 내역</h2>
         <button class="btn btn-secondary btn-sm" type="button" data-act="modal" data-kind="appeal">이의신청</button></div>
-      ${callout('info','chart','월 만점 5.0 = <strong>필수 4.0</strong>(M1~M4 각 1.0/0.5/0) + <strong>가산 1.0</strong>(건당 0.5, 월 2건) − <strong>지각 0.5</strong>. 미제출은 감점이 아니라 그 달 0점입니다.')}
+      ${callout('info','chart','월 만점 5.0 = <strong>필수 4.0</strong>(M1~M5 각 0.8/0.4/0) + <strong>가산 1.0</strong>(건당 0.5, 월 2건) − <strong>지각 0.5</strong>. 미제출은 감점이 아니라 그 달 0점입니다.')}
       <div class="table-wrap"><table>
         <thead><tr><th scope="col">평가 월</th><th scope="col">규칙</th><th scope="col">평가 항목</th><th scope="col">판정</th><th scope="col">판정 사유</th><th scope="col" class="t-num">점수</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
@@ -1405,90 +1428,469 @@ function tabGrievance(g, bare){
 /* ─────────────────────────────────────────────
    모달 — 활동일지 제출(실시간 예상 점수) · 후기 · 이의신청 · 일정
    ───────────────────────────────────────────── */
-function autoJudge(g, form){
-  const mine = LOGS.filter(l=>l.gid===g.id && l.pid==='p9');
+/* ─────────────────────────────────────────────
+   제출 폼 — 활동일지(M1~M4) · 월별 조 후기(M5)
+   항목 단위로 받아야 충족 개수를 셀 수 있다. 자유 서식 한 덩어리로 받지 않는다.
+   ───────────────────────────────────────────── */
+const clen = s => String(s||'').replace(/\s/g,'').length;
+const IT = (k,l,min,ph,type)=>({k, l, min:min||30, ph:ph||'', type:type||'area'});
+
+const LOGSPEC = {
+  review:{
+    p9:{
+      m1:{t:'필수1 · 활동 계획서', items:[
+        IT('name','조 이름',2,'예: 데이터네컷','text'),
+        IT('role','조원별 역할',30,'조장 / 기록 / 사진 담당 등 전원의 역할'),
+        IT('plan','월별 활동 일정',20,'요일·시간대·방식'),
+        IT('goal','조 목표',20,'이번 기수에 무엇을 남길 것인지')]},
+      m2:{t:'필수2 · 같이 복습하기 (핵심 개념 3개)', items:[
+        IT('c1','개념 ① 정의 / 코드·예시 / 헷갈린 포인트',40,''),
+        IT('c2','개념 ② 정의 / 코드·예시 / 헷갈린 포인트',40,''),
+        IT('c3','개념 ③ 정의 / 코드·예시 / 헷갈린 포인트',40,''),
+        IT('ins','조원별 한 줄 인사이트 (전원)',30,'이름 + 한 줄')]}
+    },
+    p11:{
+      m1:{t:'필수1 · 문제 5개 제작 + 전원 풀이 + 해설', items:[
+        IT('q1','개념 문제 ① 문항 / 정답 / 해설',40,''),
+        IT('q2','개념 문제 ② 문항 / 정답 / 해설',40,''),
+        IT('q3','응용 문제 ① 문항 / 정답 / 해설',40,''),
+        IT('q4','응용 문제 ② 문항 / 정답 / 해설',40,''),
+        IT('q5','응용 문제 ③ 문항 / 정답 / 해설',40,''),
+        IT('solve','조원 전원 풀이 인증',20,'누가 몇 문제를 풀었는지')]},
+      m2:{t:'필수2 · 택 1 이상', choice:[
+        {v:'quiz', l:'팀별 미니 퀴즈 대회 진행', min:60, ph:'진행 방식과 결과'},
+        {v:'tip',  l:'각자 학습 팁 공유', min:60, ph:'조원별 1건 이상'}]}
+    },
+    p1:{
+      m1:{t:'필수1 · 가장 어려운 문제 3개 팀 전체 해결', items:[
+        IT('pick','선정한 문제 3개와 선정 이유',40,''),
+        IT('old','기존 풀이 (문제별)',40,''),
+        IT('new','개선 풀이 (문제별)',40,''),
+        IT('concept','관련 개념 정리',30,'')]},
+      m2:{t:'필수2 · 택 1', choice:[
+        {v:'unsolved', l:'이번 달 미해결 문제 발표', min:60, ph:'내용과 남은 쟁점'},
+        {v:'summary',  l:'조별 학습·프로젝트 성과 요약 업로드', min:60, ph:'형식 자유 — 카드뉴스·PPT·워드'}]}
+    },
+    p2:{
+      m1:{t:'필수1 · 핵심 개념 5개 정리 + 최종 과제 함께하기', items:[
+        IT('k1','핵심 개념 ①',10,'','text'), IT('k2','핵심 개념 ②',10,'','text'),
+        IT('k3','핵심 개념 ③',10,'','text'), IT('k4','핵심 개념 ④',10,'','text'),
+        IT('k5','핵심 개념 ⑤',10,'','text'),
+        IT('final','최종 과제 공동 수행 내역',40,'모르는·부족한 부분을 공유한 과정')]},
+      m2:{t:'필수2 · 최종 후기·회고록', viaReview:true}
+    }
+  },
+  contest:{
+    p9:{
+      m1:{t:'필수1 · 참가 계획서', items:[
+        IT('target','참가 공모전 (마감일은 위 상단에 기재)',10,'공모전 정식 명칭','text'),
+        IT('why','공모전 참가 목적',30,''),
+        IT('role','팀 목표 및 조원별 역할',30,'조장·기획·데이터 분석·자료조사·발표'),
+        IT('plan','전체 활동 일정',30,'마감 역산 일정')]},
+      m2:{t:'필수2 · 공모전 후보 3개 이상 비교 회의', items:[
+        IT('c_name','공모전명 (후보 3개)',20,'후보 3개를 모두 적을 것'),
+        IT('c_topic','주제 및 모집 분야',30,''),
+        IT('c_cond','참가 조건',20,''),
+        IT('c_sched','일정',20,'각 후보의 마감일'),
+        IT('c_fit','우리 팀 적합성',30,''),
+        IT('c_pick','최종 선정 이유',30,'')]}
+    },
+    p11:{
+      m1:{t:'필수1 · 중간 산출물 제작', items:[
+        IT('eda','EDA 결과 정리',40,''),
+        IT('dir','데이터 분석 방향 점검',30,''),
+        IT('draft','공모전 기획 초안',40,''),
+        IT('share','현재까지의 분석 결과 공유',30,'')]},
+      m2:{t:'필수2 · 진척 공유 + 병목 1개 선정', items:[
+        IT('now','현재까지 진행 상황',30,''),
+        IT('good','잘 진행되고 있는 부분',20,''),
+        IT('bad','어려움을 겪고 있는 부분',20,''),
+        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
+        IT('action','해결을 위한 조원별 의견 및 액션',30,'')]}
+    },
+    p1:{
+      m1:{t:'필수1 · 최종 제출물 완성', items:[
+        IT('result','최종 분석 결과 정리',40,''),
+        IT('deck','결과물 및 발표자료 완성',30,''),
+        IT('format','제출 형식 및 요구사항 점검',20,''),
+        IT('check','조원별 최종 검토',20,'')]},
+      m2:{t:'필수2 · 실제 제출 인증 + 피드백 반영 내역', items:[
+        IT('proof','실제 제출 화면·완료 인증',20,'캡처 파일명 또는 링크'),
+        IT('fb','제출 전 받은 피드백 내용',30,''),
+        IT('applied','피드백 반영 내용',30,''),
+        IT('notapplied','반영하지 않은 의견과 그 이유',30,'')]}
+    },
+    p2:{
+      m1:{t:'필수1 · 공모전 결과 공유', items:[
+        IT('final','최종 결과',20,''),
+        IT('award','수상 여부',6,'수상 실패는 감점 요소가 아님','text'),
+        IT('opinion','결과에 대한 조원 의견',30,''),
+        IT('review','잘했던 점 및 아쉬웠던 점',30,'')]},
+      m2:{t:'필수2 · 최종 회고록', viaReview:true}
+    }
+  }
+};
+
+const REVIEWSPEC = {
+  common:[
+    {t:'이번 달 우리 조가 한 활동', min:150,
+     g:'언제·어디서·무엇을. 분반명·개념명·공모전명 같은 고유명사를 반드시 넣을 것.',
+     ph:{review:'11/8 온라인으로 모여 ML 심화반 6주차의 의사결정나무와 랜덤포레스트를 다시 짚었고…',
+         contest:'11/9 오프라인으로 모여 제12회 공공데이터 활용 공모전의 EDA 결과를 정리했고…'}},
+    {t:'가장 도움이 된 것 하나', min:150,
+     g:'하나만 골라 구체적으로. 나열하면 검수 큐로 넘어감.',
+     ph:{review:'지니 계수를 직접 손으로 계산해본 것이 가장 도움이 됐습니다. 수업에서는…',
+         contest:'결측치 처리 방향을 놓고 30분 논쟁한 것이 가장 도움이 됐습니다. 결국…'}},
+    {t:'어려웠던 점과 해결 방법', min:150,
+     g:'해결되지 않았으면 안 됐다고 쓸 것. 미해결도 감점이 아님.',
+     ph:{review:'과적합을 왜 트리 깊이로 잡는지 아무도 설명하지 못했습니다. 결국 조교님께…',
+         contest:'데이터 용량이 커서 로컬에서 돌아가지 않았습니다. 코랩으로 옮겼지만…'}},
+    {t:'우리 조 분위기 · 조원에게 한마디', min:80, g:'이름을 언급하면 좋습니다.',
+     ph:{review:'다현님이 매번 회의록을 정리해준 덕에…', contest:'지우님이 코드를 다 뜯어고쳐준 덕에…'}},
+    {t:'다음 달 계획', min:70, g:'다음 달 필수활동과 연결할 것.',
+     ph:{review:'다음 달에는 문제 5개 제작이 필수라 미리 범위를 나눠…',
+         contest:'다음 달에는 최종 제출물 완성 단계라 발표자료를…'}}
+  ],
+  p2:{
+    review:[{t:'내가 성장한 부분',min:150,g:'2월은 M2 최종 회고와 겸합니다.',ph:{}},
+            {t:'부족했던 부분',min:150,g:'',ph:{}},
+            {t:'아쉬웠던 점',min:150,g:'',ph:{}},
+            {t:'좋았던 점',min:150,g:'',ph:{}}],
+    contest:[{t:'성장한 부분',min:120,g:'2월은 M2 최종 회고와 겸합니다.',ph:{}},
+             {t:'부족했던 부분',min:120,g:'',ph:{}},
+             {t:'아쉬웠던 점',min:120,g:'',ph:{}},
+             {t:'좋았던 점',min:120,g:'',ph:{}},
+             {t:'다음 공모전에서 개선할 점',min:120,g:'',ph:{}}]
+  }
+};
+const REV_MIN = 600, REV_MAX = 800;
+const reviewSpec = (track, pid) => pid==='p2' ? REVIEWSPEC.p2[track] : REVIEWSPEC.common;
+
+/* ── 판정 ──────────────────────────────────── */
+const tri = (ok,total) => total===0 ? 0 : (ok===total ? .8 : (ok===0 ? 0 : .4));
+
+function readLogForm(root){
+  const track = root.dataset.track;
+  const pid = root.querySelector('[name=pid]').value;
+  const spec = LOGSPEC[track][pid];
+  const val = n => { const el = root.querySelector(`[name="${n}"]`); return el ? el.value : ''; };
+  const chk = n => { const el = root.querySelector(`[name="${n}"]`); return !!(el && el.checked); };
+  const part = key => {
+    const sec = spec[key];
+    if(sec.viaReview) return {viaReview:true, items:[], ok:0, total:0};
+    if(sec.choice){
+      const pickV = val(key+'-pick'), body = val(key+'-body');
+      const opt = sec.choice.find(o=>o.v===pickV) || sec.choice[0];
+      return {choice:true, pick:opt, body, items:[{k:'body', l:opt.l, min:opt.min, v:body}],
+              ok: clen(body)>=opt.min ? 1 : 0, total:1};
+    }
+    const items = sec.items.map(it=>Object.assign({}, it, {v: val(key+'-'+it.k)}));
+    return {items, ok: items.filter(it=>clen(it.v)>=it.min).length, total: items.length};
+  };
+  return {
+    pid, track, spec, m1: part('m1'), m2: part('m2'),
+    type: val('type'), loc: val('loc'), title: val('title'),
+    join: Number(val('join')||0), photo: chk('photo'), doc: chk('doc'),
+    e1: chk('e1'), e2: chk('e2'), e3: chk('e3'),
+    cname: val('cname'), cdue: val('cdue'), cms: val('cms'), calt: val('calt')
+  };
+}
+
+function autoJudge(g, f){
+  const p = period(f.pid);
+  const mine = LOGS.filter(l=>l.gid===g.id && l.pid===f.pid);
   let off = mine.filter(l=>l.loc!=='온라인').length;
   let on  = mine.filter(l=>l.loc==='온라인').length;
-  if(form.loc==='온라인') on++; else off++;
-  const M3 = off>=1 ? 1 : (on>=2 ? 1 : (on===1 ? .5 : 0));
-  const ok = [form.photo, form.doc, form.join>=quorum(memberCount(g))].filter(Boolean).length;
-  const M4 = ok===3 ? 1 : (ok===0 ? 0 : .5);
-  const bonusTypes = ['자율 활동','공모전 인증','자격증 인증'];
-  const bonusNow = mine.filter(l=>bonusTypes.includes(l.type)).length;
-  const bonus = bonusTypes.includes(form.type) ? (bonusNow<2 ? .5 : 0) : 0;
-  const late = dday('2026-10-02') < 0 ? -.5 : 0;
-  return {M3, M4, bonus, late, off, on, bonusNow:bonusNow+(bonus>0?1:0)};
+  if(f.loc==='온라인') on++; else off++;
+
+  const M1 = tri(f.m1.ok, f.m1.total);
+  const M3 = (off>=1 || on>=2) ? .8 : (on===1 ? .4 : 0);
+  const okc = [f.photo, f.doc, f.join>=quorum(memberCount(g))].filter(Boolean).length;
+  const M4 = okc===3 ? .8 : (okc===0 ? 0 : .4);
+  const rv = REVIEWS.find(r=>r.gid===g.id && r.pid===f.pid);
+  const M5 = rv ? (rv.score==null ? .8 : rv.score) : 0;
+  const M2 = f.m2.viaReview ? M5 : tri(f.m2.ok, f.m2.total);
+
+  const bonusN = [f.e1,f.e2,f.e3].filter(Boolean).length;
+  const bonus = Math.min(2, bonusN) * .5;
+  const late = dday(p.due) < 0 ? -.5 : 0;
+  const req = M1 + M2 + M3 + M4 + M5;
+  const total = Math.max(0, Math.min(5, req + bonus + late));
+  return {M1, M2, M3, M4, M5, bonus, bonusN, late, off, on, okc, req, total, rv};
 }
-function judgePanel(g, form){
-  const j = autoJudge(g, form);
-  const auto = j.M3 + j.M4 + j.bonus + j.late;
-  const line = (id,label,val,note)=>`<tr><td><span class="badge badge-muted badge-sm">${id}</span></td><td>${label}</td>
-    <td class="small">${note}</td><td class="t-num">${val>0?'+':''}${money(val)}</td></tr>`;
+
+function judgePanel(g, f){
+  const j = autoJudge(g, f), p = period(f.pid);
+  const q = quorum(memberCount(g));
+  const row = (id,label,val,note,kind)=>`<tr>
+    <td><span class="badge ${kind||'badge-muted'} badge-sm">${id}</span></td>
+    <td>${label}</td><td class="small">${note}</td>
+    <td class="t-num">${val>0?'+':''}${money(val)}</td></tr>`;
+  const cnt = (part,label) => part.viaReview ? '2월은 후기(M5)로 갈음'
+    : `${part.ok} / ${part.total}항목 충족`;
   return `<div class="soft" id="judge">
-    <p class="caption">이번 제출 기준 자동 판정 미리보기</p>
+    <div class="row-between"><p class="caption">이번 제출 기준 자동 판정 미리보기</p>
+      <span class="badge ${j.total>=3.5?'badge-success':'badge-warning'} badge-sm num">합계 ${money(j.total)} / 5.0</span></div>
     <div class="table-wrap" style="margin-top:var(--sp-2)"><table>
       <tbody>
-        ${line('M3','만남 요건', j.M3, `이번 달 오프라인 ${j.off}회 · 온라인 ${j.on}회`)}
-        ${line('M4','증빙·참여', j.M4, `사진 ${form.photo?'O':'X'} · 자료 ${form.doc?'O':'X'} · 참여 ${form.join}/${memberCount(g)}명 (과반 ${quorum(memberCount(g))}명)`)}
-        ${line('E','가산', j.bonus, `자율·추가 만남·인증 통합 월 2건까지 (현재 ${j.bonusNow}건)`)}
-        ${line('P1','지각 제출', j.late, `마감 ${fmt('2026-10-02')} · ${ddayTag('2026-10-02')}`)}
+        ${row('M1', esc(f.spec.m1.t.replace('필수1 · ','')), j.M1, cnt(f.m1))}
+        ${row('M2', esc(f.spec.m2.t.replace('필수2 · ','')), j.M2, cnt(f.m2))}
+        ${row('M3','만남 요건', j.M3, `오프라인 ${j.off}회 · 온라인 ${j.on}회 (오프 1회 또는 온 2회)`)}
+        ${row('M4','증빙·참여', j.M4, `사진 ${f.photo?'O':'X'} · 자료 ${f.doc?'O':'X'} · 참여 ${f.join}/${memberCount(g)}명 (과반 ${q}명)`)}
+        ${row('M5','월별 조 후기', j.M5, j.rv ? `${esc(j.rv.author)} 집필 · 제출됨` : '미제출 — 후기 작성에서 별도 제출', 'badge-info')}
+        ${row('E','가산', j.bonus, `자율·추가 만남·인증 통합 월 2건까지 (선택 ${j.bonusN}건)`, 'badge-success')}
+        ${row('P1','지각 제출', j.late, `마감 ${fmt(p.due)} · ${ddayTag(p.due)}`, 'badge-warning')}
       </tbody>
-      <tfoot><tr><td colspan="3">자동 판정 합계 (M1·M2 최대 2.0은 운영진 검수)</td><td class="t-num">${money(auto)}</td></tr></tfoot>
+      <tfoot><tr><td colspan="3">필수 ${money(j.req)} + 가산 ${money(j.bonus)} ${j.late?'− 0.5':''} · 수료선 3.5</td>
+        <td class="t-num">${money(j.total)}</td></tr></tfoot>
     </table></div>
   </div>`;
 }
-function readLogForm(root){
-  return {
-    type: root.querySelector('[name=type]').value,
-    loc: root.querySelector('[name=loc]').value,
-    join: Number(root.querySelector('[name=join]').value||0),
-    photo: root.querySelector('[name=photo]').checked,
-    doc: root.querySelector('[name=doc]').checked
-  };
+
+/* ── 항목 필드 ─────────────────────────────── */
+function itemField(key, it){
+  const n = key+'-'+it.k;
+  const meter = `<div class="qmeter"><span class="qbar"><i data-bar="${n}"></i></span>
+    <span class="num" data-count="${n}">0 / ${it.min}자</span></div>`;
+  const input = it.type==='text'
+    ? `<input class="input" name="${n}" data-live data-min="${it.min}" placeholder="${esc(it.ph)}">`
+    : `<textarea class="textarea" name="${n}" rows="2" data-live data-min="${it.min}" placeholder="${esc(it.ph)}"></textarea>`;
+  return `<label class="field"><span>${esc(it.l)}</span>${input}${meter}</label>`;
 }
-function modalLog(g){
-  const p = period('p9');
-  const rub = RUBRIC[g.track].p9;
-  const form = {type:'활동 일지', loc:'오프라인', join:memberCount(g), photo:true, doc:true};
-  return `<form class="modal stack-sm" data-act="submit-log" data-gid="${g.id}">
+function sectionFields(key, sec, g){
+  if(sec.viaReview){
+    return callout('warn','message',
+      `2월 필수2는 <strong>월별 조 후기(M5)와 겸합니다.</strong> 같은 달에 두 번 쓰지 않습니다 —
+       <button class="btn btn-soft btn-sm" type="button" data-act="modal" data-kind="review" data-gid="${g.id}" data-pid="p2">후기 작성으로 이동</button>`);
+  }
+  if(sec.choice){
+    return `<label class="field"><span>수행한 활동 선택</span>
+      <select class="select" name="${key}-pick" data-live>
+        ${sec.choice.map(o=>`<option value="${o.v}">${esc(o.l)}</option>`).join('')}
+      </select></label>
+      ${itemField(key, {k:'body', l:'내용', min:sec.choice[0].min, ph:sec.choice[0].ph, type:'area'})}`;
+  }
+  return sec.items.map(it=>itemField(key, it)).join('');
+}
+
+function modalLog(g, pid){
+  pid = pid || 'p9';
+  const p = period(pid), spec = LOGSPEC[g.track][pid];
+  const f = {pid, track:g.track, spec, m1:{ok:0,total:spec.m1.items?spec.m1.items.length:(spec.m1.choice?1:0),items:[],viaReview:false},
+             m2:{ok:0,total:spec.m2.items?spec.m2.items.length:(spec.m2.choice?1:0),items:[],viaReview:!!spec.m2.viaReview},
+             loc:'오프라인', join:memberCount(g), photo:true, doc:true, e1:false, e2:false, e3:false, type:'활동 일지'};
+  const dueWarn = g.track==='contest' && pid==='p9'
+    ? callout('warn','clock','참가 공모전의 <strong>마감일이 1월 이후</strong>면 1월 필수2(실제 제출 인증)를 채울 수 없습니다. 마감 1월 이전 공모전을 선택하세요.')
+    : '';
+  return `<form class="modal stack-sm" data-act="submit-log" data-gid="${g.id}" data-track="${g.track}">
     <div class="row-between"><h2 class="h3">활동일지 제출</h2>
       <button class="btn btn-ghost btn-sm" type="button" data-act="close" aria-label="닫기">${ic('x',16)}</button></div>
-    <p class="small">${esc(g.name)} · ${p.label} (${p.span}) · ${p.theme}</p>
-    ${callout('info','check',`이 달 필수 — <strong>M1</strong> ${esc(rub[0])} / <strong>M2</strong> ${esc(rub[1])}`)}
-    <label class="field"><span>제목</span><input class="input" name="title" required placeholder="예: 핵심 개념 3개 복습 모임"></label>
+    <p class="small">${esc(g.name)} · ${trackName(g.track)}</p>
+
     <div class="row" style="gap:var(--sp-3);align-items:flex-end">
+      <label class="field" style="flex:1"><span>제출 월</span>
+        <select class="select" name="pid" data-act="log-period">
+          ${PERIODS.map(x=>`<option value="${x.id}" ${x.id===pid?'selected':''}>${x.label} · ${x.theme}</option>`).join('')}
+        </select></label>
       <label class="field" style="flex:1"><span>제출 유형</span>
         <select class="select" name="type" data-live>
-          ${['활동 계획서','활동 일지','자율 활동','공모전 인증','자격증 인증'].map(t=>`<option ${t===form.type?'selected':''}>${t}</option>`).join('')}
+          ${['활동 계획서','활동 일지','자율 활동','공모전 인증','자격증 인증'].map(t=>`<option ${t===f.type?'selected':''}>${t}</option>`).join('')}
         </select></label>
-      <label class="field" style="flex:1"><span>활동 형태</span>
-        <select class="select" name="loc" data-live>
-          ${['오프라인','온라인','온·오프라인'].map(t=>`<option ${t===form.loc?'selected':''}>${t}</option>`).join('')}
-        </select></label>
-      <label class="field" style="width:120px"><span>참여 인원</span>
-        <input class="input num" name="join" type="number" min="0" max="${memberCount(g)}" value="${form.join}" data-live></label>
     </div>
-    <label class="field"><span>활동 내용</span><textarea class="textarea" name="body" rows="3" required placeholder="활동 내용을 20자 이상 작성해 주세요."></textarea></label>
-    <div class="row" style="gap:var(--sp-4)">
-      <label class="row" style="gap:var(--sp-2);font-size:var(--fs-label)"><input type="checkbox" name="photo" checked data-live>활동 사진 첨부</label>
-      <label class="row" style="gap:var(--sp-2);font-size:var(--fs-label)"><input type="checkbox" name="doc" checked data-live>복습·산출 자료 첨부</label>
-    </div>
-    <div id="judge-slot">${judgePanel(g, form)}</div>
+    ${pid==='p9' ? callout('info','check','9월은 <strong>필수1(계획서)과 필수2(일지)를 별도 문서로 각각 제출</strong>합니다. 11월부터 하나의 일지로 합칩니다.') : ''}
+    <label class="field"><span>제목</span><input class="input" name="title" required placeholder="예: 핵심 개념 3개 복습 모임"></label>
+
+    ${g.track==='contest' ? `
+    <fieldset class="fset"><legend>공모전 진행 상황</legend>
+      <div class="row" style="gap:var(--sp-3);align-items:flex-end">
+        <label class="field" style="flex:2"><span>참가 공모전명</span>
+          <input class="input" name="cname" placeholder="예: 2026 금융 빅데이터 분석 공모전"></label>
+        <label class="field" style="flex:1"><span>공모전 마감일</span>
+          <input class="input" name="cdue" type="date" value="2027-01-15"></label>
+      </div>
+      <div class="row" style="gap:var(--sp-3);align-items:flex-end;margin-top:var(--sp-3)">
+        <label class="field" style="flex:1"><span>현재 도달 단계</span>
+          <select class="select" name="cms">${MILESTONES.map(m=>`<option value="${m.id}">${m.id} · ${m.t}</option>`).join('')}</select></label>
+        <label class="field" style="flex:2"><span>대체 경로 전환</span>
+          <input class="input" name="calt" placeholder="해당 없음 / 전환 시 사유와 대체 대상"></label>
+      </div>
+      ${dueWarn}
+    </fieldset>` : ''}
+
+    <fieldset class="fset"><legend>${esc(spec.m1.t)}</legend>
+      ${sectionFields('m1', spec.m1, g)}</fieldset>
+    <fieldset class="fset"><legend>${esc(spec.m2.t)}</legend>
+      ${sectionFields('m2', spec.m2, g)}</fieldset>
+
+    <fieldset class="fset"><legend>M3 만남 · M4 증빙·참여</legend>
+      <div class="row" style="gap:var(--sp-3);align-items:flex-end">
+        <label class="field" style="flex:1"><span>이번 활동 형태</span>
+          <select class="select" name="loc" data-live>
+            ${['오프라인','온라인','온·오프라인'].map(t=>`<option ${t===f.loc?'selected':''}>${t}</option>`).join('')}
+          </select></label>
+        <label class="field" style="width:130px"><span>참여 인원</span>
+          <input class="input num" name="join" type="number" min="0" max="${memberCount(g)}" value="${f.join}" data-live></label>
+      </div>
+      <div class="row" style="gap:var(--sp-4);margin-top:var(--sp-3)">
+        <label class="chkline"><input type="checkbox" name="photo" checked data-live>활동 사진 첨부</label>
+        <label class="chkline"><input type="checkbox" name="doc" checked data-live>복습·산출 자료 첨부</label>
+      </div>
+    </fieldset>
+
+    <fieldset class="fset"><legend>가산 — 건당 +0.5, 월 2건까지</legend>
+      <div class="row" style="gap:var(--sp-4)">
+        <label class="chkline"><input type="checkbox" name="e1" data-live>E1 자율활동 (사진 1장 + 20자)</label>
+        <label class="chkline"><input type="checkbox" name="e2" data-live>E2 추가 만남</label>
+        <label class="chkline"><input type="checkbox" name="e3" data-live>E3 공모전·자격증 인증</label>
+      </div>
+    </fieldset>
+
+    <div id="judge-slot">${judgePanel(g, readLogFormInit(g, pid, f))}</div>
     <div class="row"><button class="btn btn-primary btn-lg" type="submit">제출</button>
       <button class="btn btn-secondary btn-lg" type="button" data-act="close">취소</button></div>
   </form>`;
 }
-function modalReview(g){
-  return `<form class="modal stack-sm" data-act="submit-review" data-gid="${g?g.id:'g1'}">
-    <div class="row-between"><h2 class="h3">월별 후기 작성</h2>
+/* 최초 렌더 시점에는 DOM이 없으므로 빈 값 기준으로 판정 */
+function readLogFormInit(g, pid, f){
+  const spec = LOGSPEC[g.track][pid];
+  const empty = sec => sec.viaReview ? {viaReview:true, items:[], ok:0, total:0}
+    : sec.choice ? {choice:true, items:[], ok:0, total:1}
+    : {items:[], ok:0, total:sec.items.length};
+  return Object.assign({}, f, {pid, track:g.track, spec, m1:empty(spec.m1), m2:empty(spec.m2)});
+}
+
+/* ── 월별 조 후기 (M5) ─────────────────────── */
+function wroteMonths(g, name){
+  return REVIEWS.filter(r=>r.gid===g.id && r.author===name).map(r=>period(r.pid).label);
+}
+function readReviewForm(root){
+  const gid = root.querySelector('[name=gid]').value;
+  const g = G(gid) || MYGROUPS()[0];
+  const pid = root.querySelector('[name=pid]').value;
+  const spec = reviewSpec(g.track, pid);
+  const answers = spec.map((q,i)=>{
+    const el = root.querySelector(`[name="a${i}"]`);
+    return el ? el.value : '';
+  });
+  return {g, pid, spec, answers, url: (root.querySelector('[name=url]')||{}).value || '',
+          writer: (root.querySelector('[name=writer]')||{}).value || ''};
+}
+function judgeReview(f){
+  const total = f.answers.reduce((a,s)=>a+clen(s), 0);
+  const short = [];
+  f.answers.forEach((s,i)=>{ if(clen(s) < f.spec[i].min) short.push('Q'+(i+1)); });
+  const writerOk = !!f.writer;
+  const urlOk = /^https?:\/\/cafe\.naver\.com\/\S+/i.test(f.url.trim());
+  const late = dday(period(f.pid).due) < 0;
+  const nothing = total===0 && !f.url.trim();
+  const score = nothing ? 0
+    : (!writerOk || !urlOk || short.length || total < REV_MIN) ? .4 : .8;
+
+  const queue = [];
+  for(let i=0;i<f.answers.length;i++)
+    for(let j=i+1;j<f.answers.length;j++)
+      if(clen(f.answers[i])>40 && clen(f.answers[j])>40 && jaccard(f.answers[i],f.answers[j])>.5)
+        queue.push(`Q${i+1}와 Q${j+1}의 내용이 거의 같습니다`);
+  if(f.answers.some(repeatedSentence)) queue.push('같은 문장이 3회 이상 반복됩니다');
+  if(f.pid!=='p2' && clen(f.answers[0])>40 && !hasProperNoun(f.answers[0]))
+    queue.push('Q1에 분반명·개념명 같은 고유명사가 없습니다');
+  return {total, short, writerOk, urlOk, late, nothing, score, queue};
+}
+function bigrams(s){
+  const t = String(s).replace(/[\s.,!?~·…"'()\[\]]/g,''), set = {};
+  for(let i=0;i<t.length-1;i++) set[t.slice(i,i+2)] = 1;
+  return set;
+}
+function jaccard(a,b){
+  const A = bigrams(a), B = bigrams(b); let inter=0, uni=0;
+  for(const k in A){ uni++; if(B[k]) inter++; }
+  for(const k in B){ if(!A[k]) uni++; }
+  return uni ? inter/uni : 0;
+}
+function hasProperNoun(s){
+  return /[A-Za-z]{2,}/.test(s) || /\d+\s*(회|월|일|차|주차|개|명|위|등|%)/.test(s)
+      || /[「『"'][^」』"']{2,}[」』"']/.test(s) || /\S{2,}(반|공모전|대회|프로젝트)/.test(s);
+}
+function repeatedSentence(s){
+  const parts = String(s).split(/[.!?\n]+/).map(x=>x.replace(/\s/g,'')).filter(x=>x.length>6);
+  const seen = {}; let max = 0;
+  parts.forEach(p=>{ seen[p]=(seen[p]||0)+1; if(seen[p]>max) max=seen[p]; });
+  return max >= 3;
+}
+function reviewJudgePanel(f){
+  const j = judgeReview(f);
+  const line = (label, ok, note) => `<tr><td>${label}</td>
+    <td class="small">${note}</td>
+    <td class="t-num"><span class="badge ${ok?'badge-success':'badge-danger'} badge-sm">${ok?'충족':'미충족'}</span></td></tr>`;
+  return `<div class="soft" id="rjudge">
+    <div class="row-between"><p class="caption">M5 자동 판정 미리보기</p>
+      <span class="badge ${j.score===.8?'badge-success':(j.score===0?'badge-danger':'badge-warning')} badge-sm num">
+        ${money(j.score)} / 0.8${j.late?' · 지각 −0.5':''}</span></div>
+    <div class="table-wrap" style="margin-top:var(--sp-2)"><table><tbody>
+      ${line('집필자 지정', j.writerOk, j.writerOk?'지정됨':'미지정 — 지정하지 않으면 0.4')}
+      ${line('카페 URL 형식', j.urlOk, j.urlOk?'정상':'cafe.naver.com 주소가 필요합니다')}
+      ${line('문항 최소 분량', j.short.length===0, j.short.length?j.short.join('·')+' 미달':'전 문항 충족')}
+      ${line('총 분량', j.total>=REV_MIN, `${j.total}자 / ${REV_MIN}~${REV_MAX}자${j.total>REV_MAX?' · 상한 초과(경고)':''}`)}
+      ${line('마감', !j.late, `${fmt(period(f.pid).due)} · ${ddayTag(period(f.pid).due)}`)}
+    </tbody></table></div>
+    ${j.queue.length && !j.nothing ? callout('warn','flag',
+      '<strong>검수 큐 대상</strong><br>' + j.queue.map(esc).join('<br>')) : ''}
+  </div>`;
+}
+function modalReview(g, pid){
+  g = g || MYGROUPS()[0];
+  pid = pid || 'p9';
+  const spec = reviewSpec(g.track, pid);
+  const minSum = spec.reduce((a,q)=>a+q.min,0);
+  return `<form class="modal stack-sm" data-act="submit-review" data-gid="${g.id}">
+    <div class="row-between"><h2 class="h3">월별 조 후기 작성</h2>
       <button class="btn btn-ghost btn-sm" type="button" data-act="close" aria-label="닫기">${ic('x',16)}</button></div>
-    <p class="small">2026년 9월 · 마감 ${fmt('2026-10-02')} (${ddayTag('2026-10-02')})</p>
-    <label class="field"><span>조</span><select class="select" name="gid">
-      ${MYGROUPS().map(x=>`<option value="${x.id}" ${g&&x.id===g.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
-    <label class="field"><span>만족도</span><select class="select" name="rating">
-      ${['5.0','4.8','4.5','4.3','4.0','3.8','3.5','3.0'].map(v=>`<option ${v==='4.5'?'selected':''}>${v}</option>`).join('')}</select></label>
-    <label class="field"><span>후기</span><textarea class="textarea" name="text" rows="4" required placeholder="이번 달 활동에서 좋았던 점과 아쉬웠던 점을 적어 주세요."></textarea></label>
-    ${callout('ok','star','후기는 LMS와 네이버카페 양쪽에 노출됩니다. 후기 참여율은 <strong>생존조의 30% 이상</strong>이 13기 목표입니다.')}
+    <p class="small">조당 월 1건 · 집필자 매월 로테이션 · ${REV_MIN}~${REV_MAX}자 · 요건 충족 0.8점</p>
+
+    <div class="row" style="gap:var(--sp-3);align-items:flex-end">
+      <label class="field" style="flex:2"><span>조</span>
+        <select class="select" name="gid" data-act="review-group">
+          ${MYGROUPS().map(x=>`<option value="${x.id}" ${x.id===g.id?'selected':''}>${esc(x.name)}</option>`).join('')}
+        </select></label>
+      <label class="field" style="flex:1"><span>제출 월</span>
+        <select class="select" name="pid" data-act="review-period">
+          ${PERIODS.map(x=>`<option value="${x.id}" ${x.id===pid?'selected':''}>${x.label}</option>`).join('')}
+        </select></label>
+    </div>
+    ${pid==='p2' ? callout('info','check','2월 후기는 <strong>필수2 최종 회고와 겸합니다.</strong> 같은 달에 두 번 쓰지 않습니다.') : ''}
+
+    <div class="row" style="gap:var(--sp-3);align-items:flex-end">
+      <label class="field" style="flex:1"><span>이번 달 집필자</span>
+        <select class="select" name="writer" data-live>
+          <option value="">— 선택 —</option>
+          ${g.members.map(m=>{
+            const w = wroteMonths(g, m.name);
+            return `<option value="${esc(m.name)}">${esc(m.name)}${w.length?'  ('+w.join('·')+' 집필)':'  (미집필)'}</option>`;
+          }).join('')}
+        </select></label>
+      <label class="field" style="flex:2"><span>네이버카페 후기 URL</span>
+        <input class="input" name="url" type="url" data-live placeholder="https://cafe.naver.com/bdastudy/12345"></label>
+    </div>
+    <div class="rot">
+      ${g.members.map(m=>{
+        const w = wroteMonths(g, m.name);
+        return `<span class="badge ${w.length?'badge-muted':'badge-danger'} badge-sm">${esc(m.name)} · ${w.length?w.join('·'):'집필 이력 없음'}</span>`;
+      }).join('')}
+    </div>
+    <p class="caption">순번은 조가 정합니다. 시스템은 이번 달 집필자가 지정됐는지만 봅니다. 기수 종료까지 한 번도 집필하지 않은 조원은 상점 +2에서 제외됩니다.</p>
+
+    <fieldset class="fset"><legend>후기 문항 — 최소 합계 ${minSum}자</legend>
+      ${spec.map((q,i)=>`<label class="field">
+        <span>Q${i+1}. ${esc(q.t)}</span>
+        ${q.g?`<span class="caption">${esc(q.g)}</span>`:''}
+        <textarea class="textarea" name="a${i}" rows="3" data-live data-min="${q.min}"
+          placeholder="${esc((q.ph&&q.ph[g.track])||'')}"></textarea>
+        <div class="qmeter"><span class="qbar"><i data-bar="a${i}"></i></span>
+          <span class="num" data-count="a${i}">0 / ${q.min}자</span></div>
+      </label>`).join('')}
+    </fieldset>
+
+    <div id="rjudge-slot">${reviewJudgePanel({g, pid, spec, answers:spec.map(()=>''), url:'', writer:''})}</div>
     <div class="row"><button class="btn btn-primary btn-lg" type="submit">등록</button>
       <button class="btn btn-secondary btn-lg" type="button" data-act="close">취소</button></div>
   </form>`;
@@ -1577,8 +1979,8 @@ function layer(){
   const el = document.getElementById('layer');
   if(!S.modal){ el.innerHTML=''; return; }
   const g = G(S.modal.gid) || MYGROUPS()[0];
-  const inner = S.modal.kind==='log' ? modalLog(g)
-    : S.modal.kind==='review' ? modalReview(g)
+  const inner = S.modal.kind==='log' ? modalLog(g, S.modal.pid)
+    : S.modal.kind==='review' ? modalReview(g, S.modal.pid)
     : S.modal.kind==='appeal' ? modalAppeal()
     : modalSchedule();
   el.innerHTML = `<div class="overlay" data-act="close-bg" role="dialog" aria-modal="true">${inner}</div>`;
@@ -1591,9 +1993,35 @@ function toast(msg){
   const t = document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); t.textContent = msg;
   document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.remove(), 2600);
 }
+function syncCounters(form){
+  form.querySelectorAll('[data-min]').forEach(el=>{
+    const n = el.getAttribute('name'), min = Number(el.dataset.min);
+    const c = form.querySelector('[data-count="'+n+'"]');
+    const b = form.querySelector('[data-bar="'+n+'"]');
+    if(!c) return;
+    const v = clen(el.value);
+    c.textContent = v + ' / ' + min + '자';
+    c.className = 'num ' + (v>=min ? 'ok' : (v>0 ? 'low' : ''));
+    if(b){ b.style.width = Math.min(100, Math.round(v/min*100)) + '%';
+           b.className = v>=min ? 'ok' : ''; }
+  });
+}
 function refreshJudge(root){
-  const g = G(root.dataset.gid);
-  document.getElementById('judge-slot').innerHTML = judgePanel(g, readLogForm(root));
+  if(!root) return;
+  const pick = root.querySelector('[name=m2-pick]');
+  if(pick){
+    const body = root.querySelector('[name=m2-body]');
+    const spec = LOGSPEC[root.dataset.track][root.querySelector('[name=pid]').value];
+    const opt = spec.m2.choice.find(o=>o.v===pick.value);
+    if(body && opt){ body.dataset.min = opt.min; body.placeholder = opt.ph; }
+  }
+  syncCounters(root);
+  if(root.dataset.act==='submit-log'){
+    const g = G(root.dataset.gid);
+    document.getElementById('judge-slot').innerHTML = judgePanel(g, readLogForm(root));
+  } else if(root.dataset.act==='submit-review'){
+    document.getElementById('rjudge-slot').innerHTML = reviewJudgePanel(readReviewForm(root));
+  }
 }
 
 document.addEventListener('click', e=>{
@@ -1606,7 +2034,7 @@ document.addEventListener('click', e=>{
   else if(act==='toggle-empty'){ S.learningEmpty = !S.learningEmpty; render(); }
   else if(act==='cal'){ if(t.dataset.m){ S.cal = t.dataset.m; render(); } }
   else if(act==='open-notice'){ S.openNotice = S.openNotice===t.dataset.id ? null : t.dataset.id; render(); }
-  else if(act==='modal'){ S.modal = {kind:t.dataset.kind, gid:t.dataset.gid}; layer(); }
+  else if(act==='modal'){ S.modal = {kind:t.dataset.kind, gid:t.dataset.gid, pid:t.dataset.pid||'p9'}; layer(); }
   else if(act==='close'){ S.modal=null; layer(); }
   else if(act==='close-bg'){ if(e.target===t){ S.modal=null; layer(); } }
 });
@@ -1619,25 +2047,35 @@ document.addEventListener('input', e=>{
 document.addEventListener('change', e=>{
   const t = e.target;
   if(t.dataset.act==='sel'){ S.f[t.dataset.scope][t.dataset.key] = t.value; render(); }
+  else if(t.dataset.act==='log-period' || t.dataset.act==='review-period'){
+    S.modal.pid = t.value; layer(); }
+  else if(t.dataset.act==='review-group'){ S.modal.gid = t.value; layer(); }
+  else if(t.hasAttribute('data-live')){ refreshJudge(t.closest('form')); }
 });
 document.addEventListener('submit', e=>{
   const f = e.target; e.preventDefault();
   const act = f.dataset.act;
   if(act==='submit-log'){
-    const g = G(f.dataset.gid), v = readLogForm(f);
-    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:'p9', type:v.type, loc:v.loc,
+    const g = G(f.dataset.gid), v = readLogForm(f), j = autoJudge(g, v);
+    const flat = part => part.items.filter(it=>it.v).map(it=>it.l+' — '+it.v).join(' / ');
+    const body = [flat(v.m1), flat(v.m2)].filter(Boolean).join(' | ') || '(항목 미작성)';
+    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, type:v.type, loc:v.loc,
       date:TODAY.toISOString().slice(0,10), author:g.members.find(m=>m.me)?.name || g.members[0].name,
-      title:f.querySelector('[name=title]').value, join:v.join, of:memberCount(g),
-      photo:v.photo, doc:v.doc, status: dday('2026-10-02')<0?'지각':'정상', score:null, graded:false,
-      body:f.querySelector('[name=body]').value});
-    S.modal=null; render(); toast('활동일지를 제출했습니다 — 자동 판정 후 운영진 검수로 넘어갑니다');
+      title:v.title, join:v.join, of:memberCount(g),
+      photo:v.photo, doc:v.doc, status: dday(period(v.pid).due)<0?'지각':'정상', score:null, graded:false,
+      body});
+    S.modal=null; render();
+    toast(`활동일지를 제출했습니다 — 자동 판정 ${money(j.total)}점 (M1 ${money(j.M1)} · M2 ${money(j.M2)})`);
   } else if(act==='submit-review'){
-    const gid = f.querySelector('[name=gid]').value, g = G(gid);
-    const me = g.members.find(m=>m.me) || g.members[0];
-    REVIEWS.unshift({id:'r'+(REVIEWS.length+1), gid, pid:'p9', author:me.name, mask:me.name.slice(0,2)+'*',
-      rating:Number(f.querySelector('[name=rating]').value), date:TODAY.toISOString().slice(0,10),
-      likes:0, liked:false, text:f.querySelector('[name=text]').value});
-    S.modal=null; render(); toast('9월 후기를 등록했습니다');
+    const v = readReviewForm(f), j = judgeReview(v), g = v.g;
+    if(j.nothing){ toast('후기 내용을 입력해 주세요'); return; }
+    const name = v.writer || (g.members.find(m=>m.me)?.name || g.members[0].name);
+    REVIEWS.unshift({id:'r'+(REVIEWS.length+1), gid:g.id, pid:v.pid, author:name,
+      mask:name.slice(0,2)+'*', date:TODAY.toISOString().slice(0,10), likes:0, liked:false,
+      score:j.score, chars:j.total, url:v.url.trim(), queue:j.queue,
+      text:v.answers.map((a,i)=>a?(v.spec[i].t+' — '+a):'').filter(Boolean).join('  ')});
+    S.modal=null; render();
+    toast(`후기를 등록했습니다 — M5 ${money(j.score)}점${j.queue.length?' · 검수 큐 '+j.queue.length+'건':''}`);
   } else if(act==='submit-appeal'){
     S.modal=null; render(); toast('이의신청이 접수되었습니다 — 처리 기한 1주');
   } else if(act==='submit-grievance'){
