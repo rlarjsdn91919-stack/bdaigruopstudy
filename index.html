@@ -52,6 +52,7 @@
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important;}
 }
 *,*::before,*::after{box-sizing:border-box;}
+[hidden]{display:none !important;}
 body{margin:0;background:var(--color-bg);color:var(--color-text);
   font:var(--fw-regular) var(--fs-body)/var(--lh-body) var(--font);
   word-break:keep-all;-webkit-font-smoothing:antialiased;}
@@ -754,7 +755,7 @@ function logRow(l){
         <span class="caption num" style="margin-left:auto">${fmt(l.date)}</span>
       </div>
       <h3 class="label" style="margin-top:var(--sp-2);font-size:var(--fs-body)">${esc(l.title)}</h3>
-      <p class="small" style="margin-top:var(--sp-1)">${esc(g.name)} · ${esc(l.author)} · ${l.loc}${(l.meets||1)>1?' '+l.meets+'회':''} · 참여 ${l.join}/${l.of}명</p>
+      <p class="small" style="margin-top:var(--sp-1)">${esc(g.name)} · ${esc(l.author)} · ${l.off!=null||l.on!=null ? `오프 ${l.off||0}회 · 온 ${l.on||0}회` : l.loc} · 참여 ${l.join}/${l.of}명</p>
       <p style="font-size:var(--fs-label);margin-top:var(--sp-2);max-width:72ch">${esc(l.body)}</p>
       <div class="row" style="gap:var(--sp-2);margin-top:var(--sp-3)">
         <span class="badge ${l.photo?'badge-success':'badge-danger'} badge-sm">활동 사진 ${l.photo?'첨부':'없음'}</span>
@@ -1608,13 +1609,12 @@ function readLogForm(root){
   };
   return {
     pid, track, spec, m1: part('m1'), m2: part('m2'),
-    loc: val('loc'), oncount: Math.max(1, Number(val('oncount')||1)), title: val('title'),
-    join: Number(val('join')||0),
+    off: Math.max(0, Number(val('offmeet')||0)), on: Math.max(0, Number(val('onmeet')||0)),
+    title: val('title'), join: Number(val('join')||0),
     photoF: files('photo'), docF: files('doc'),
     photo: files('photo').length>0, doc: files('doc').length>0,
-    e1: chk('e1'), e2: chk('e2'), e3: chk('e3'),
+    e1: chk('e1'), e3: chk('e3'),
     e1f: files('e1file'), e1memo: val('e1-memo'),
-    e2f: files('e2file'), e2loc: val('e2loc'), e2join: Number(val('e2join')||0),
     e3f: files('e3file'), e3name: val('e3name'), e3memo: val('e3-memo'),
     cname: val('cname'), cdue: val('cdue'), cms: val('cms'), calt: val('calt')
   };
@@ -1622,14 +1622,12 @@ function readLogForm(root){
 
 function autoJudge(g, f){
   const p = period(f.pid);
-  const mine = LOGS.filter(l=>l.gid===g.id && l.pid===f.pid);
-  const meets = l => Math.max(1, l.meets||1);
-  let off = mine.filter(l=>l.loc!=='온라인').reduce((a,l)=>a+meets(l), 0);
-  let on  = mine.filter(l=>l.loc==='온라인').reduce((a,l)=>a+meets(l), 0);
-  if(f.loc==='온라인') on += Math.max(1, f.oncount||1); else off++;
+  const off = Math.max(0, f.off||0), on = Math.max(0, f.on||0);
 
   const M1 = tri(f.m1.ok, f.m1.total);
   const M3 = (off>=1 || on>=2) ? .8 : (on===1 ? .4 : 0);
+  const needed = off>=1 ? 1 : (on>=2 ? 2 : 0);
+  const extra = needed ? Math.min(4, off + on - needed) : 0;
   const okc = [f.photo, f.doc, f.join>=quorum(memberCount(g))].filter(Boolean).length;
   const M4 = okc===3 ? .8 : (okc===0 ? 0 : .4);
   const rv = REVIEWS.find(r=>r.gid===g.id && r.pid===f.pid);
@@ -1638,28 +1636,31 @@ function autoJudge(g, f){
 
   const eOk = {
     e1: !!f.e1 && (f.e1f||[]).length>0 && clen(f.e1memo)>=20,
-    e2: !!f.e2 && (f.e2f||[]).length>0 && !!f.e2loc && (f.e2join||0)>=1,
     e3: !!f.e3 && (f.e3f||[]).length>0 && String(f.e3name||'').trim().length>0 && clen(f.e3memo)>=20
   };
-  const ePicked = [f.e1,f.e2,f.e3].filter(Boolean).length;
-  const bonusN = [eOk.e1,eOk.e2,eOk.e3].filter(Boolean).length;
+  const ePicked = [f.e1,f.e3].filter(Boolean).length;
+  const bonusN = [eOk.e1,eOk.e3].filter(Boolean).length + extra;
   const bonus = Math.min(2, bonusN) * .5;
   const late = dday(p.due) < 0 ? -.5 : 0;
   const req = M1 + M2 + M3 + M4 + M5;
   const total = Math.max(0, Math.min(5, req + bonus + late));
-  return {M1, M2, M3, M4, M5, bonus, bonusN, ePicked, eOk, late, off, on, okc, req, total, rv};
+  return {M1, M2, M3, M4, M5, bonus, bonusN, extra, needed, ePicked, eOk, late, off, on, okc, req, total, rv};
 }
 
 /* 제출 유형은 고르게 하지 않고 작성 내용에서 도출한다.
    9월만 필수1(계획서)·필수2(일지)를 별도 문서로 내므로 그 달에만 갈린다. */
+function deriveLoc(off, on){
+  return off>0 && on>0 ? '온·오프라인' : (off>0 ? '오프라인' : '온라인');
+}
 function deriveType(v){
   if(v.pid==='p9' && v.m1.ok>0 && v.m2.ok===0) return '활동 계획서';
   return '활동 일지';
 }
 function bonusNote(j){
-  const L = {e1:'E1 자율활동', e2:'E2 추가 만남', e3:'E3 공모전·자격증'};
-  const parts = ['e1','e2','e3'].map(k=>
+  const L = {e1:'E1 자율활동', e3:'E3 공모전·자격증'};
+  const parts = ['e1','e3'].map(k=>
     j.eOk[k] ? `<span class="badge badge-success badge-sm">${L[k]} 인정</span>` : null).filter(Boolean);
+  if(j.extra>0) parts.unshift(`<span class="badge badge-success badge-sm">E2 추가 만남 ${j.extra}회</span>`);
   const pending = j.ePicked - j.bonusN;
   if(pending>0) parts.push(`<span class="badge badge-warning badge-sm">요건 미충족 ${pending}건</span>`);
   if(j.bonusN>2) parts.push(`<span class="badge badge-muted badge-sm">월 2건 상한 적용</span>`);
@@ -1681,7 +1682,7 @@ function judgePanel(g, f){
       <tbody>
         ${row('M1', esc(f.spec.m1.t.replace('필수1 · ','')), j.M1, cnt(f.m1))}
         ${row('M2', esc(f.spec.m2.t.replace('필수2 · ','')), j.M2, cnt(f.m2))}
-        ${row('M3','만남 요건', j.M3, `이번 달 오프라인 ${j.off}회 · 온라인 ${j.on}회 — ${j.M3===.8?'충족':(j.M3===.4?'온라인 1회만 (1회 더 필요)':'만남 없음')}`)}
+        ${row('M3','만남 요건', j.M3, `오프라인 ${j.off}회 · 온라인 ${j.on}회 — ${j.M3===.8?('필수 '+j.needed+'회 충족'+(j.extra?' · 초과 '+j.extra+'회는 가산으로':'')):(j.M3===.4?'온라인 1회만 (1회 더 필요)':'만남 없음')}`)}
         ${row('M4','증빙·참여', j.M4, `활동사진 ${(f.photoF||[]).length?(f.photoF.length+'개 첨부'):'미첨부'} · 복습자료 ${(f.docF||[]).length?(f.docF.length+'개 첨부'):'미첨부'} · 참여 ${f.join}/${memberCount(g)}명 (과반 ${q}명)`)}
         ${row('M5','월별 조 후기', j.M5, j.rv ? `${esc(j.rv.author)} 집필 · 제출됨` : '미제출 — 후기 작성에서 별도 제출', 'badge-info')}
         ${row('E','가산', j.bonus, bonusNote(j), 'badge-success')}
@@ -1744,10 +1745,13 @@ function sectionFields(key, sec, g){
 function modalLog(g, pid){
   pid = pid || 'p9';
   const p = period(pid), spec = LOGSPEC[g.track][pid];
+  const prior = LOGS.filter(l=>l.gid===g.id && l.pid===pid);
+  const priorOff = prior.reduce((a,l)=>a + (l.off!=null ? l.off : (l.loc!=='온라인'?1:0)), 0);
+  const priorOn  = prior.reduce((a,l)=>a + (l.on!=null ? l.on : (l.loc==='온라인'?1:0)), 0);
   const f = {pid, track:g.track, spec, m1:{ok:0,total:spec.m1.items?spec.m1.items.length:(spec.m1.choice?1:0),items:[],viaReview:false},
              m2:{ok:0,total:spec.m2.items?spec.m2.items.length:(spec.m2.choice?1:0),items:[],viaReview:!!spec.m2.viaReview},
-             loc:'오프라인', oncount:1, join:memberCount(g), photoF:[], docF:[], photo:false, doc:false,
-             e1:false, e2:false, e3:false, e1f:[], e2f:[], e3f:[], e1memo:'', e3name:'', e3memo:''};
+             off:priorOff, on:priorOn, join:memberCount(g), photoF:[], docF:[], photo:false, doc:false,
+             e1:false, e3:false, e1f:[], e3f:[], e1memo:'', e3name:'', e3memo:''};
   const dueWarn = g.track==='contest' && pid==='p9'
     ? callout('warn','clock','참가 공모전의 <strong>마감일이 1월 이후</strong>면 1월 필수2(실제 제출 인증)를 채울 수 없습니다. 마감 1월 이전 공모전을 선택하세요.')
     : '';
@@ -1789,40 +1793,25 @@ function modalLog(g, pid){
 
     <fieldset class="fset"><legend>M3 만남 · M4 증빙·참여</legend>
       <div class="row" style="gap:var(--sp-3);align-items:flex-end">
-        <label class="field" style="flex:1"><span>이번 활동 형태</span>
-          <select class="select" name="loc" data-live>
-            ${['오프라인','온라인','온·오프라인'].map(t=>`<option ${t===f.loc?'selected':''}>${t}</option>`).join('')}
-          </select></label>
-        <label class="field" style="width:130px" data-oncount hidden><span>온라인 회의 횟수</span>
-          <input class="input num" name="oncount" type="number" min="1" max="10" value="1" data-live></label>
+        <label class="field" style="width:150px"><span>오프라인 만남</span>
+          <input class="input num" name="offmeet" type="number" min="0" max="10" value="${f.off}" data-live></label>
+        <label class="field" style="width:150px"><span>온라인 회의</span>
+          <input class="input num" name="onmeet" type="number" min="0" max="10" value="${f.on}" data-live></label>
         <label class="field" style="width:130px"><span>참여 인원</span>
           <input class="input num" name="join" type="number" min="0" max="${memberCount(g)}" value="${f.join}" data-live></label>
       </div>
-      <p class="caption">M3는 <strong>오프라인 1회</strong> 또는 <strong>온라인 2회 이상</strong>이면 충족입니다. 온라인만 진행한 달은 회의 횟수를 적어 주세요 — 1회만이면 0.4점입니다.</p>
+      <p class="caption">이번 달 누적 횟수를 적습니다. <strong>오프라인 1회</strong> 또는 <strong>온라인 2회</strong>면 M3 충족이고,
+        <strong>그 이상은 온·오프 무관 1회당 가산 +0.5</strong>입니다 (예: 온라인 3회 = 필수 2회 + 가산 1회).</p>
       ${fileField('photo','활동 사진', IMG, '조원 전원이 식별되는 사진 1장 이상. 첨부해야 M4가 올라갑니다.')}
       ${fileField('doc','복습·산출 자료', DOC, '노트북·정리 문서·발표자료 등. 첨부해야 M4가 올라갑니다.')}
     </fieldset>
 
-    <fieldset class="fset"><legend>가산 — 요건을 채운 항목만 건당 +0.5, 월 2건까지</legend>
+    <fieldset class="fset"><legend>가산 — 건당 +0.5, 월 2건까지 (E2 추가 만남은 위 만남 횟수에서 자동 산정)</legend>
       <div class="ebox" data-ebox="e1">
         <label class="chkline"><input type="checkbox" name="e1" data-live>E1 자율활동</label>
         <div class="epanel" data-panel="e1" hidden>
           ${fileField('e1file','활동 사진', IMG, '사진 1장 이상')}
           ${itemField('e1', {k:'memo', l:'활동 요약 (20자 이상)', min:20, ph:'예: 조 이름을 정하고 우리 조 규칙 3가지를 합의했습니다', type:'area'})}
-        </div>
-      </div>
-      <div class="ebox" data-ebox="e2">
-        <label class="chkline"><input type="checkbox" name="e2" data-live>E2 추가 만남 (필수 요건을 넘긴 만남)</label>
-        <div class="epanel" data-panel="e2" hidden>
-          <div class="row" style="gap:var(--sp-3);align-items:flex-end">
-            <label class="field" style="flex:1"><span>활동 형태</span>
-              <select class="select" name="e2loc" data-live>
-                ${['오프라인','온라인','온·오프라인'].map(t=>`<option>${t}</option>`).join('')}
-              </select></label>
-            <label class="field" style="width:130px"><span>참여 인원</span>
-              <input class="input num" name="e2join" type="number" min="0" max="${memberCount(g)}" value="0" data-live></label>
-          </div>
-          ${fileField('e2file','인증샷', IMG, '만남을 확인할 수 있는 사진')}
         </div>
       </div>
       <div class="ebox" data-ebox="e3">
@@ -2118,9 +2107,7 @@ function refreshJudge(root){
   }
   syncCounters(root);
   syncFiles(root);
-  const locSel = root.querySelector('[name=loc]'), onWrap = root.querySelector('[data-oncount]');
-  if(locSel && onWrap) onWrap.hidden = locSel.value !== '온라인';
-  ['e1','e2','e3'].forEach(k=>{
+  ['e1','e3'].forEach(k=>{
     const cb = root.querySelector('[name="'+k+'"]');
     const panel = root.querySelector('[data-panel="'+k+'"]');
     const box = root.querySelector('[data-ebox="'+k+'"]');
@@ -2172,12 +2159,13 @@ document.addEventListener('submit', e=>{
     const g = G(f.dataset.gid), v = readLogForm(f), j = autoJudge(g, v);
     const flat = part => part.items.filter(it=>it.v).map(it=>it.l+' — '+it.v).join(' / ');
     const body = [flat(v.m1), flat(v.m2)].filter(Boolean).join(' | ') || '(항목 미작성)';
-    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, type:deriveType(v), loc:v.loc,
+    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, type:deriveType(v), loc:deriveLoc(v.off, v.on),
       date:TODAY.toISOString().slice(0,10), author:g.members.find(m=>m.me)?.name || g.members[0].name,
       title:v.title, join:v.join, of:memberCount(g),
-      meets: v.loc==='온라인' ? v.oncount : 1,
+      off:v.off, on:v.on,
       photo:v.photo, doc:v.doc, files:(v.photoF||[]).concat(v.docF||[]),
-      bonus:['e1','e2','e3'].filter(k=>j.eOk[k]).map(k=>({e1:'E1 자율활동',e2:'E2 추가 만남',e3:'E3 공모전·자격증'})[k]),
+      bonus:['e1','e3'].filter(k=>j.eOk[k]).map(k=>({e1:'E1 자율활동',e3:'E3 공모전·자격증'})[k])
+        .concat(j.extra>0 ? ['E2 추가 만남 '+j.extra+'회'] : []),
       status: dday(period(v.pid).due)<0?'지각':'정상', score:null, graded:false,
       body});
     S.modal=null; render();
