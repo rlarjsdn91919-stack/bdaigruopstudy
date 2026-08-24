@@ -749,7 +749,7 @@ function logRow(l){
     <span class="avatar">${esc(l.author.slice(0,1))}</span>
     <div style="flex:1;min-width:0">
       <div class="row" style="gap:var(--sp-2)">
-        ${trackBadge(g.track)}<span class="badge badge-muted badge-sm">${l.type}</span>
+        ${trackBadge(g.track)}<span class="badge badge-brand badge-sm">${period(l.pid).label}</span><span class="badge badge-muted badge-sm">${l.type}</span>
         <span class="badge ${st} badge-sm">${l.status} 제출</span>
         <span class="caption num" style="margin-left:auto">${fmt(l.date)}</span>
       </div>
@@ -1339,7 +1339,7 @@ function tabLogs(g, bare){
       </div>
       <div class="row-between" style="border-top:1px solid var(--color-border);padding-top:var(--sp-3)">
         <span class="small num">${list.length}건</span>
-        <span class="small">유형: 활동 계획서 · 활동 일지(필수) · 자율 활동 · 공모전 인증 · 자격증 인증</span></div>
+        <span class="small">필수1·필수2는 월별 문항으로 접수 · 가산(자율활동·추가 만남·공모전/자격증)은 일지 안에서 함께 제출</span></div>
       ${list.length?`<div class="divide">${list.map(logRow).join('')}</div>`
         :`<div class="empty">${ic('book',32)}<p>조건에 맞는 활동일지가 없어요.</p></div>`}
     </section>`;
@@ -1608,7 +1608,7 @@ function readLogForm(root){
   };
   return {
     pid, track, spec, m1: part('m1'), m2: part('m2'),
-    type: val('type'), loc: val('loc'), title: val('title'),
+    loc: val('loc'), title: val('title'),
     join: Number(val('join')||0),
     photoF: files('photo'), docF: files('doc'),
     photo: files('photo').length>0, doc: files('doc').length>0,
@@ -1649,6 +1649,12 @@ function autoJudge(g, f){
   return {M1, M2, M3, M4, M5, bonus, bonusN, ePicked, eOk, late, off, on, okc, req, total, rv};
 }
 
+/* 제출 유형은 고르게 하지 않고 작성 내용에서 도출한다.
+   9월만 필수1(계획서)·필수2(일지)를 별도 문서로 내므로 그 달에만 갈린다. */
+function deriveType(v){
+  if(v.pid==='p9' && v.m1.ok>0 && v.m2.ok===0) return '활동 계획서';
+  return '활동 일지';
+}
 function bonusNote(j){
   const L = {e1:'E1 자율활동', e2:'E2 추가 만남', e3:'E3 공모전·자격증'};
   const parts = ['e1','e2','e3'].map(k=>
@@ -1740,8 +1746,7 @@ function modalLog(g, pid){
   const f = {pid, track:g.track, spec, m1:{ok:0,total:spec.m1.items?spec.m1.items.length:(spec.m1.choice?1:0),items:[],viaReview:false},
              m2:{ok:0,total:spec.m2.items?spec.m2.items.length:(spec.m2.choice?1:0),items:[],viaReview:!!spec.m2.viaReview},
              loc:'오프라인', join:memberCount(g), photoF:[], docF:[], photo:false, doc:false,
-             e1:false, e2:false, e3:false, e1f:[], e2f:[], e3f:[], e1memo:'', e3name:'', e3memo:'',
-             type:'활동 일지'};
+             e1:false, e2:false, e3:false, e1f:[], e2f:[], e3f:[], e1memo:'', e3name:'', e3memo:''};
   const dueWarn = g.track==='contest' && pid==='p9'
     ? callout('warn','clock','참가 공모전의 <strong>마감일이 1월 이후</strong>면 1월 필수2(실제 제출 인증)를 채울 수 없습니다. 마감 1월 이전 공모전을 선택하세요.')
     : '';
@@ -1753,10 +1758,6 @@ function modalLog(g, pid){
       <label class="field" style="flex:1;min-width:150px"><span>제출 월</span>
         <select class="select" name="pid" data-act="log-period">
           ${PERIODS.map(x=>`<option value="${x.id}" ${x.id===pid?'selected':''}>${x.label} · ${x.theme}</option>`).join('')}
-        </select></label>
-      <label class="field" style="flex:1;min-width:150px"><span>제출 유형</span>
-        <select class="select" name="type" data-live>
-          ${['활동 계획서','활동 일지','자율 활동','공모전 인증','자격증 인증'].map(t=>`<option ${t===f.type?'selected':''}>${t}</option>`).join('')}
         </select></label>
     </div>
     ${groupMeta(g)}
@@ -2165,7 +2166,7 @@ document.addEventListener('submit', e=>{
     const g = G(f.dataset.gid), v = readLogForm(f), j = autoJudge(g, v);
     const flat = part => part.items.filter(it=>it.v).map(it=>it.l+' — '+it.v).join(' / ');
     const body = [flat(v.m1), flat(v.m2)].filter(Boolean).join(' | ') || '(항목 미작성)';
-    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, type:v.type, loc:v.loc,
+    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, type:deriveType(v), loc:v.loc,
       date:TODAY.toISOString().slice(0,10), author:g.members.find(m=>m.me)?.name || g.members[0].name,
       title:v.title, join:v.join, of:memberCount(g),
       photo:v.photo, doc:v.doc, files:(v.photoF||[]).concat(v.docF||[]),
