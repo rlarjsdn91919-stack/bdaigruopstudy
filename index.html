@@ -1696,6 +1696,19 @@ function itemField(key, it){
     : `<textarea class="textarea" name="${n}" rows="2" data-live data-min="${it.min}" placeholder="${esc(it.ph)}"></textarea>`;
   return `<label class="field"><span>${esc(it.l)}</span>${input}${meter}</label>`;
 }
+function groupMeta(g){
+  return `<p class="caption">${trackName(g.track)} · ${g.mode} · ${esc(CLS(g.classId))} ·
+    조원 ${memberCount(g)}명 (참여 과반 ${quorum(memberCount(g))}명)</p>`;
+}
+function groupPicker(g, act){
+  const my = MYGROUPS();
+  return `<label class="field" style="flex:2;min-width:220px"><span>작성할 조</span>
+    <select class="select" name="gid" data-act="${act}">
+      ${my.map(x=>`<option value="${x.id}" ${x.id===g.id?'selected':''}>${esc(x.name)}</option>`).join('')}
+    </select>
+    ${my.length>1?`<span class="caption">소속 ${my.length}개 조 — 조를 바꾸면 트랙에 맞는 문항으로 다시 열립니다</span>`:''}
+  </label>`;
+}
 function fileField(n, label, accept, hint){
   return `<label class="field"><span>${label}</span>
     <input class="fileinput" type="file" name="${n}" accept="${accept}" multiple data-live>
@@ -1735,18 +1748,18 @@ function modalLog(g, pid){
   return `<form class="modal stack-sm" data-act="submit-log" data-gid="${g.id}" data-track="${g.track}">
     <div class="row-between"><h2 class="h3">활동일지 제출</h2>
       <button class="btn btn-ghost btn-sm" type="button" data-act="close" aria-label="닫기">${ic('x',16)}</button></div>
-    <p class="small">${esc(g.name)} · ${trackName(g.track)}</p>
-
     <div class="row" style="gap:var(--sp-3);align-items:flex-end">
-      <label class="field" style="flex:1"><span>제출 월</span>
+      ${groupPicker(g, 'log-group')}
+      <label class="field" style="flex:1;min-width:150px"><span>제출 월</span>
         <select class="select" name="pid" data-act="log-period">
           ${PERIODS.map(x=>`<option value="${x.id}" ${x.id===pid?'selected':''}>${x.label} · ${x.theme}</option>`).join('')}
         </select></label>
-      <label class="field" style="flex:1"><span>제출 유형</span>
+      <label class="field" style="flex:1;min-width:150px"><span>제출 유형</span>
         <select class="select" name="type" data-live>
           ${['활동 계획서','활동 일지','자율 활동','공모전 인증','자격증 인증'].map(t=>`<option ${t===f.type?'selected':''}>${t}</option>`).join('')}
         </select></label>
     </div>
+    ${groupMeta(g)}
     ${pid==='p9' ? callout('info','check','9월은 <strong>필수1(계획서)과 필수2(일지)를 별도 문서로 각각 제출</strong>합니다. 11월부터 하나의 일지로 합칩니다.') : ''}
     <label class="field"><span>제목</span><input class="input" name="title" required placeholder="예: 핵심 개념 3개 복습 모임"></label>
 
@@ -1921,15 +1934,16 @@ function modalReview(g, pid){
     <p class="small">조당 월 1건 · 집필자 매월 로테이션 · ${REV_MIN}~${REV_MAX}자 · 요건 충족 0.8점</p>
 
     <div class="row" style="gap:var(--sp-3);align-items:flex-end">
-      <label class="field" style="flex:2"><span>조</span>
-        <select class="select" name="gid" data-act="review-group">
-          ${MYGROUPS().map(x=>`<option value="${x.id}" ${x.id===g.id?'selected':''}>${esc(x.name)}</option>`).join('')}
-        </select></label>
-      <label class="field" style="flex:1"><span>제출 월</span>
+      ${groupPicker(g, 'review-group')}
+      <label class="field" style="flex:1;min-width:150px"><span>제출 월</span>
         <select class="select" name="pid" data-act="review-period">
           ${PERIODS.map(x=>`<option value="${x.id}" ${x.id===pid?'selected':''}>${x.label}</option>`).join('')}
         </select></label>
     </div>
+    ${groupMeta(g)}
+    ${REVIEWS.some(r=>r.gid===g.id && r.pid===pid)
+      ? callout('warn','check',`이 조는 <strong>${period(pid).label} 후기가 이미 제출</strong>되어 있습니다 (집필 ${esc(REVIEWS.find(r=>r.gid===g.id && r.pid===pid).author)}). 후기는 조당 월 1건입니다.`)
+      : ''}
     ${pid==='p2' ? callout('info','check','2월 후기는 <strong>필수2 최종 회고와 겸합니다.</strong> 같은 달에 두 번 쓰지 않습니다.') : ''}
 
     <div class="row" style="gap:var(--sp-3);align-items:flex-end">
@@ -2140,7 +2154,8 @@ document.addEventListener('change', e=>{
   if(t.dataset.act==='sel'){ S.f[t.dataset.scope][t.dataset.key] = t.value; render(); }
   else if(t.dataset.act==='log-period' || t.dataset.act==='review-period'){
     S.modal.pid = t.value; layer(); }
-  else if(t.dataset.act==='review-group'){ S.modal.gid = t.value; layer(); }
+  else if(t.dataset.act==='review-group' || t.dataset.act==='log-group'){
+    S.modal.gid = t.value; layer(); }
   else if(t.hasAttribute('data-live')){ refreshJudge(t.closest('form')); }
 });
 document.addEventListener('submit', e=>{
