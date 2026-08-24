@@ -380,6 +380,20 @@ tfoot td{font-weight:var(--fw-bold);background:var(--color-surface-soft);}
 .qmeter .low{color:var(--warning-fg);}
 .qbar > i.ok{background:var(--success-fg);}
 .rot{display:flex;flex-wrap:wrap;gap:var(--sp-2);}
+.fileinput{font-size:var(--fs-label);padding:var(--sp-2) 0;}
+.fileinput::file-selector-button{font:inherit;font-size:var(--fs-caption);
+  font-weight:var(--fw-semi);margin-right:var(--sp-3);padding:6px 12px;cursor:pointer;
+  border:1px solid var(--color-border-strong);border-radius:var(--r-sm);
+  background:var(--color-surface);color:var(--color-text-strong);}
+.fileinput::file-selector-button:hover{background:var(--color-surface-soft);}
+.filename{font-size:var(--fs-caption);color:var(--color-text-disabled);}
+.filename.has{color:var(--success-fg);font-weight:var(--fw-semi);}
+.ebox{border:1px solid var(--color-border);border-radius:var(--r-md);padding:var(--sp-3);}
+.ebox.on{border-color:var(--color-accent);background:var(--blue-50);}
+.epanel{display:flex;flex-direction:column;gap:var(--sp-3);
+  margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--color-border);}
+.epanel[hidden]{display:none;}
+.filelist{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-top:var(--sp-2);}
 </style>
 <a class="skip" href="#main">본문 바로가기</a>
 <header class="header">
@@ -747,7 +761,10 @@ function logRow(l){
         <span class="badge ${l.doc?'badge-success':'badge-danger'} badge-sm">복습 자료 ${l.doc?'첨부':'없음'}</span>
         <span class="badge ${l.join>=quorum(l.of)?'badge-success':'badge-warning'} badge-sm">참여 과반 ${l.join>=quorum(l.of)?'충족':'미충족'}</span>
         ${l.graded ? `<span class="badge badge-brand badge-sm num">채점 ${money(l.score)}점</span>` : `<span class="badge badge-warning badge-sm">채점 대기</span>`}
+        ${(l.bonus||[]).map(b=>`<span class="badge badge-success badge-sm">${esc(b)} +0.5</span>`).join('')}
       </div>
+      ${(l.files||[]).length ? `<div class="filelist">${l.files.map(n=>
+        `<span class="badge badge-muted badge-sm">${ic('upload',12)}${esc(n)}</span>`).join('')}</div>` : ''}
     </div>
   </article>`;
 }
@@ -1575,6 +1592,8 @@ function readLogForm(root){
   const spec = LOGSPEC[track][pid];
   const val = n => { const el = root.querySelector(`[name="${n}"]`); return el ? el.value : ''; };
   const chk = n => { const el = root.querySelector(`[name="${n}"]`); return !!(el && el.checked); };
+  const files = n => { const el = root.querySelector(`[name="${n}"]`);
+    return el && el.files ? Array.prototype.map.call(el.files, f=>f.name) : []; };
   const part = key => {
     const sec = spec[key];
     if(sec.viaReview) return {viaReview:true, items:[], ok:0, total:0};
@@ -1590,8 +1609,13 @@ function readLogForm(root){
   return {
     pid, track, spec, m1: part('m1'), m2: part('m2'),
     type: val('type'), loc: val('loc'), title: val('title'),
-    join: Number(val('join')||0), photo: chk('photo'), doc: chk('doc'),
+    join: Number(val('join')||0),
+    photoF: files('photo'), docF: files('doc'),
+    photo: files('photo').length>0, doc: files('doc').length>0,
     e1: chk('e1'), e2: chk('e2'), e3: chk('e3'),
+    e1f: files('e1file'), e1memo: val('e1-memo'),
+    e2f: files('e2file'), e2loc: val('e2loc'), e2join: Number(val('e2join')||0),
+    e3f: files('e3file'), e3name: val('e3name'), e3memo: val('e3-memo'),
     cname: val('cname'), cdue: val('cdue'), cms: val('cms'), calt: val('calt')
   };
 }
@@ -1611,14 +1635,29 @@ function autoJudge(g, f){
   const M5 = rv ? (rv.score==null ? .8 : rv.score) : 0;
   const M2 = f.m2.viaReview ? M5 : tri(f.m2.ok, f.m2.total);
 
-  const bonusN = [f.e1,f.e2,f.e3].filter(Boolean).length;
+  const eOk = {
+    e1: !!f.e1 && (f.e1f||[]).length>0 && clen(f.e1memo)>=20,
+    e2: !!f.e2 && (f.e2f||[]).length>0 && !!f.e2loc && (f.e2join||0)>=1,
+    e3: !!f.e3 && (f.e3f||[]).length>0 && String(f.e3name||'').trim().length>0 && clen(f.e3memo)>=20
+  };
+  const ePicked = [f.e1,f.e2,f.e3].filter(Boolean).length;
+  const bonusN = [eOk.e1,eOk.e2,eOk.e3].filter(Boolean).length;
   const bonus = Math.min(2, bonusN) * .5;
   const late = dday(p.due) < 0 ? -.5 : 0;
   const req = M1 + M2 + M3 + M4 + M5;
   const total = Math.max(0, Math.min(5, req + bonus + late));
-  return {M1, M2, M3, M4, M5, bonus, bonusN, late, off, on, okc, req, total, rv};
+  return {M1, M2, M3, M4, M5, bonus, bonusN, ePicked, eOk, late, off, on, okc, req, total, rv};
 }
 
+function bonusNote(j){
+  const L = {e1:'E1 자율활동', e2:'E2 추가 만남', e3:'E3 공모전·자격증'};
+  const parts = ['e1','e2','e3'].map(k=>
+    j.eOk[k] ? `<span class="badge badge-success badge-sm">${L[k]} 인정</span>` : null).filter(Boolean);
+  const pending = j.ePicked - j.bonusN;
+  if(pending>0) parts.push(`<span class="badge badge-warning badge-sm">요건 미충족 ${pending}건</span>`);
+  if(j.bonusN>2) parts.push(`<span class="badge badge-muted badge-sm">월 2건 상한 적용</span>`);
+  return parts.length ? parts.join(' ') : '선택한 가산 항목 없음 — 건당 +0.5, 월 2건까지';
+}
 function judgePanel(g, f){
   const j = autoJudge(g, f), p = period(f.pid);
   const q = quorum(memberCount(g));
@@ -1636,9 +1675,9 @@ function judgePanel(g, f){
         ${row('M1', esc(f.spec.m1.t.replace('필수1 · ','')), j.M1, cnt(f.m1))}
         ${row('M2', esc(f.spec.m2.t.replace('필수2 · ','')), j.M2, cnt(f.m2))}
         ${row('M3','만남 요건', j.M3, `오프라인 ${j.off}회 · 온라인 ${j.on}회 (오프 1회 또는 온 2회)`)}
-        ${row('M4','증빙·참여', j.M4, `사진 ${f.photo?'O':'X'} · 자료 ${f.doc?'O':'X'} · 참여 ${f.join}/${memberCount(g)}명 (과반 ${q}명)`)}
+        ${row('M4','증빙·참여', j.M4, `활동사진 ${(f.photoF||[]).length?(f.photoF.length+'개 첨부'):'미첨부'} · 복습자료 ${(f.docF||[]).length?(f.docF.length+'개 첨부'):'미첨부'} · 참여 ${f.join}/${memberCount(g)}명 (과반 ${q}명)`)}
         ${row('M5','월별 조 후기', j.M5, j.rv ? `${esc(j.rv.author)} 집필 · 제출됨` : '미제출 — 후기 작성에서 별도 제출', 'badge-info')}
-        ${row('E','가산', j.bonus, `자율·추가 만남·인증 통합 월 2건까지 (선택 ${j.bonusN}건)`, 'badge-success')}
+        ${row('E','가산', j.bonus, bonusNote(j), 'badge-success')}
         ${row('P1','지각 제출', j.late, `마감 ${fmt(p.due)} · ${ddayTag(p.due)}`, 'badge-warning')}
       </tbody>
       <tfoot><tr><td colspan="3">필수 ${money(j.req)} + 가산 ${money(j.bonus)} ${j.late?'− 0.5':''} · 수료선 3.5</td>
@@ -1657,6 +1696,15 @@ function itemField(key, it){
     : `<textarea class="textarea" name="${n}" rows="2" data-live data-min="${it.min}" placeholder="${esc(it.ph)}"></textarea>`;
   return `<label class="field"><span>${esc(it.l)}</span>${input}${meter}</label>`;
 }
+function fileField(n, label, accept, hint){
+  return `<label class="field"><span>${label}</span>
+    <input class="fileinput" type="file" name="${n}" accept="${accept}" multiple data-live>
+    <span class="filename" data-file="${n}">선택된 파일 없음</span>
+    ${hint?`<span class="caption">${esc(hint)}</span>`:''}</label>`;
+}
+const IMG = 'image/*';
+const DOC = 'image/*,.pdf,.zip,.ipynb,.py,.docx,.pptx,.xlsx,.csv';
+
 function sectionFields(key, sec, g){
   if(sec.viaReview){
     return callout('warn','message',
@@ -1678,7 +1726,9 @@ function modalLog(g, pid){
   const p = period(pid), spec = LOGSPEC[g.track][pid];
   const f = {pid, track:g.track, spec, m1:{ok:0,total:spec.m1.items?spec.m1.items.length:(spec.m1.choice?1:0),items:[],viaReview:false},
              m2:{ok:0,total:spec.m2.items?spec.m2.items.length:(spec.m2.choice?1:0),items:[],viaReview:!!spec.m2.viaReview},
-             loc:'오프라인', join:memberCount(g), photo:true, doc:true, e1:false, e2:false, e3:false, type:'활동 일지'};
+             loc:'오프라인', join:memberCount(g), photoF:[], docF:[], photo:false, doc:false,
+             e1:false, e2:false, e3:false, e1f:[], e2f:[], e3f:[], e1memo:'', e3name:'', e3memo:'',
+             type:'활동 일지'};
   const dueWarn = g.track==='contest' && pid==='p9'
     ? callout('warn','clock','참가 공모전의 <strong>마감일이 1월 이후</strong>면 1월 필수2(실제 제출 인증)를 채울 수 없습니다. 마감 1월 이전 공모전을 선택하세요.')
     : '';
@@ -1731,17 +1781,40 @@ function modalLog(g, pid){
         <label class="field" style="width:130px"><span>참여 인원</span>
           <input class="input num" name="join" type="number" min="0" max="${memberCount(g)}" value="${f.join}" data-live></label>
       </div>
-      <div class="row" style="gap:var(--sp-4);margin-top:var(--sp-3)">
-        <label class="chkline"><input type="checkbox" name="photo" checked data-live>활동 사진 첨부</label>
-        <label class="chkline"><input type="checkbox" name="doc" checked data-live>복습·산출 자료 첨부</label>
-      </div>
+      ${fileField('photo','활동 사진', IMG, '조원 전원이 식별되는 사진 1장 이상. 첨부해야 M4가 올라갑니다.')}
+      ${fileField('doc','복습·산출 자료', DOC, '노트북·정리 문서·발표자료 등. 첨부해야 M4가 올라갑니다.')}
     </fieldset>
 
-    <fieldset class="fset"><legend>가산 — 건당 +0.5, 월 2건까지</legend>
-      <div class="row" style="gap:var(--sp-4)">
-        <label class="chkline"><input type="checkbox" name="e1" data-live>E1 자율활동 (사진 1장 + 20자)</label>
-        <label class="chkline"><input type="checkbox" name="e2" data-live>E2 추가 만남</label>
+    <fieldset class="fset"><legend>가산 — 요건을 채운 항목만 건당 +0.5, 월 2건까지</legend>
+      <div class="ebox" data-ebox="e1">
+        <label class="chkline"><input type="checkbox" name="e1" data-live>E1 자율활동</label>
+        <div class="epanel" data-panel="e1" hidden>
+          ${fileField('e1file','활동 사진', IMG, '사진 1장 이상')}
+          ${itemField('e1', {k:'memo', l:'활동 요약 (20자 이상)', min:20, ph:'예: 조 이름을 정하고 우리 조 규칙 3가지를 합의했습니다', type:'area'})}
+        </div>
+      </div>
+      <div class="ebox" data-ebox="e2">
+        <label class="chkline"><input type="checkbox" name="e2" data-live>E2 추가 만남 (필수 요건을 넘긴 만남)</label>
+        <div class="epanel" data-panel="e2" hidden>
+          <div class="row" style="gap:var(--sp-3);align-items:flex-end">
+            <label class="field" style="flex:1"><span>활동 형태</span>
+              <select class="select" name="e2loc" data-live>
+                ${['오프라인','온라인','온·오프라인'].map(t=>`<option>${t}</option>`).join('')}
+              </select></label>
+            <label class="field" style="width:130px"><span>참여 인원</span>
+              <input class="input num" name="e2join" type="number" min="0" max="${memberCount(g)}" value="0" data-live></label>
+          </div>
+          ${fileField('e2file','인증샷', IMG, '만남을 확인할 수 있는 사진')}
+        </div>
+      </div>
+      <div class="ebox" data-ebox="e3">
         <label class="chkline"><input type="checkbox" name="e3" data-live>E3 공모전·자격증 인증</label>
+        <div class="epanel" data-panel="e3" hidden>
+          <label class="field"><span>공모전 또는 자격증명</span>
+            <input class="input" name="e3name" data-live placeholder="예: 2026 금융 빅데이터 분석 공모전 / SQLD"></label>
+          ${fileField('e3file','인증 사진', IMG, '접수 화면·성적표·합격증 등')}
+          ${itemField('e3', {k:'memo', l:'활동 요약 (20자 이상)', min:20, ph:'예: 팀명으로 참가 신청을 마치고 1차 서류를 제출했습니다', type:'area'})}
+        </div>
       </div>
     </fieldset>
 
@@ -2006,6 +2079,15 @@ function syncCounters(form){
            b.className = v>=min ? 'ok' : ''; }
   });
 }
+function syncFiles(form){
+  form.querySelectorAll('input[type=file]').forEach(el=>{
+    const tag = form.querySelector('[data-file="'+el.getAttribute('name')+'"]');
+    if(!tag) return;
+    const n = el.files ? el.files.length : 0;
+    tag.textContent = n ? Array.prototype.map.call(el.files, f=>f.name).join(', ') : '선택된 파일 없음';
+    tag.className = 'filename' + (n ? ' has' : '');
+  });
+}
 function refreshJudge(root){
   if(!root) return;
   const pick = root.querySelector('[name=m2-pick]');
@@ -2016,6 +2098,15 @@ function refreshJudge(root){
     if(body && opt){ body.dataset.min = opt.min; body.placeholder = opt.ph; }
   }
   syncCounters(root);
+  syncFiles(root);
+  ['e1','e2','e3'].forEach(k=>{
+    const cb = root.querySelector('[name="'+k+'"]');
+    const panel = root.querySelector('[data-panel="'+k+'"]');
+    const box = root.querySelector('[data-ebox="'+k+'"]');
+    if(!cb || !panel) return;
+    panel.hidden = !cb.checked;
+    if(box) box.className = 'ebox' + (cb.checked ? ' on' : '');
+  });
   if(root.dataset.act==='submit-log'){
     const g = G(root.dataset.gid);
     document.getElementById('judge-slot').innerHTML = judgePanel(g, readLogForm(root));
@@ -2062,7 +2153,9 @@ document.addEventListener('submit', e=>{
     LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, type:v.type, loc:v.loc,
       date:TODAY.toISOString().slice(0,10), author:g.members.find(m=>m.me)?.name || g.members[0].name,
       title:v.title, join:v.join, of:memberCount(g),
-      photo:v.photo, doc:v.doc, status: dday(period(v.pid).due)<0?'지각':'정상', score:null, graded:false,
+      photo:v.photo, doc:v.doc, files:(v.photoF||[]).concat(v.docF||[]),
+      bonus:['e1','e2','e3'].filter(k=>j.eOk[k]).map(k=>({e1:'E1 자율활동',e2:'E2 추가 만남',e3:'E3 공모전·자격증'})[k]),
+      status: dday(period(v.pid).due)<0?'지각':'정상', score:null, graded:false,
       body});
     S.modal=null; render();
     toast(`활동일지를 제출했습니다 — 자동 판정 ${money(j.total)}점 (M1 ${money(j.M1)} · M2 ${money(j.M2)})`);
