@@ -481,14 +481,38 @@ const PERIODS = [
    desc:'결과와 회고를 공유하고 우수조로 함께 빛나며 마무리해요.', state:'예정'}
 ];
 
-/* 트랙별 M1·M2 정의 */
+/* 복습 트랙은 월 고정, 공모전 트랙은 마일스톤 단계 기준 (사양 4.7 개정 2026-08-20) */
 const RUBRIC = {
   review:{ p9:['활동 계획서 작성','수업 핵심 개념 3개 복습'], p11:['문제 5개 제작(개념2·응용3) + 전원 풀이','퀴즈 대회 또는 학습 팁 공유'],
-           p1:['어려운 문제 3개 팀 해결','미해결 문제 발표 또는 성과 요약'], p2:['핵심 개념 5개 + 최종 과제','최종 후기·회고록'] },
-  contest:{ p9:['공모전 참가 계획서','후보 3개 이상 비교 회의'], p11:['중간 산출물(데이터 확보 + EDA·기획 초안)','진척 공유 + 병목 1개 명시'],
-           p1:['제출물 + 실제 제출 인증','첨삭 반영 내역'], p2:['결과 공유 + 회고록','다음 도전 계획 또는 최종과제 연계'] }
+           p1:['어려운 문제 3개 팀 해결','미해결 문제 발표 또는 성과 요약'], p2:['핵심 개념 5개 + 최종 과제','최종 후기·회고록'] }
 };
-const MILESTONES = [{id:'S1',t:'주제 선정'},{id:'S2',t:'신청·착수'},{id:'S3',t:'제출물 작성'},{id:'S4',t:'최종 제출'}];
+const MILESTONES = [
+  {id:'S1', t:'주제 선정',   m1:'참가 계획서'},
+  {id:'S2', t:'신청·착수',   m1:'참가 신청 인증'},
+  {id:'S3', t:'제출물 작성', m1:'중간·최종 산출물'},
+  {id:'S4', t:'최종 제출',   m1:'제출 완료 인증'}
+];
+const MS = id => MILESTONES.find(m=>m.id===id) || {id:'F', t:'마무리', m1:'결과 공유'};
+const stageIdx = id => MILESTONES.findIndex(m=>m.id===id);
+
+/* 조가 9월 계획서에서 선언한 마일스톤 계획 = 그 조의 기준선 */
+function planTarget(g, pid){
+  const pi = PERIODS.findIndex(p=>p.id===pid); let t = null;
+  MILESTONES.forEach(m=>{ const mi = PERIODS.findIndex(p=>p.id===(g.plan||{})[m.id]);
+    if(mi>=0 && mi<=pi) t = m.id; });
+  return t;
+}
+function stageNow(g){
+  const done = MILESTONES.filter(m=>(g.reached||{})[m.id]);
+  return done.length ? done[done.length-1].id : null;
+}
+/* 그 달 폼·판정에 쓸 키 — 복습은 월, 공모전은 단계(2월은 마무리 고정) */
+function specKey(g, pid){
+  if(!g || g.track!=='contest') return pid;
+  if(pid==='p2') return 'F';
+  return planTarget(g, pid) || 'S1';
+}
+const logSpec = (g, pid) => LOGSPEC[g.track][specKey(g, pid)];
 
 const M = (n,g,cls,role)=>({name:n, gender:g, cls:cls, role:role||'조원', tail:String(1000+Math.floor(Math.random()*8999)).slice(0,4)});
 
@@ -500,13 +524,17 @@ const GROUPS = [
             {name:'박지훈',gender:'남',role:'조원',dept:'산업공학과',tail:'7890'},
             {name:'정우진',gender:'남',role:'조원',dept:'경영학과',tail:'8901'}]},
   {id:'g2', no:2, track:'contest', mode:'비대면', classId:null, name:'13기 공모전 트랙 2조',
-   mine:true, state:'활동 중', cafe:'https://cafe.naver.com/officialbac', contest:'2026 금융 빅데이터 분석 공모전', ms:'S2',
+   mine:true, state:'활동 중', cafe:'https://cafe.naver.com/officialbac',
+   contest:'2026 금융 빅데이터 분석 공모전', deadline:'2026-11-30',
+   plan:{S1:'p9', S2:'p9', S3:'p11', S4:'p11'}, reached:{S1:'2026-09-18', S2:'2026-09-23'},
    members:[{name:'이서연',gender:'여',role:'조장',dept:'통계학과',tail:'6789'},
             {name:'김다현',gender:'남',role:'조원',dept:'데이터사이언스학과',tail:'5678',me:true},
             {name:'한지우',gender:'여',role:'조원',dept:'컴퓨터공학과',tail:'2345'},
             {name:'오세훈',gender:'남',role:'조원',dept:'경제학과',tail:'3456'}]},
   {id:'g3', no:1, track:'contest', mode:'대면', classId:null, name:'13기 공모전 트랙 1조',
-   mine:true, state:'활동 중', cafe:'https://cafe.naver.com/officialbac', contest:'제5회 공공데이터 활용 아이디어 공모전', ms:'S1',
+   mine:true, state:'활동 중', cafe:'https://cafe.naver.com/officialbac',
+   contest:'제5회 공공데이터 활용 아이디어 공모전', deadline:'2026-12-15',
+   plan:{S1:'p9', S2:'p9', S3:'p11', S4:'p1'}, reached:{S1:'2026-10-03'},
    members:[{name:'박지민',gender:'여',role:'조장',dept:'산업공학과',tail:'4567'},
             {name:'김다현',gender:'남',role:'조원',dept:'데이터사이언스학과',tail:'5678',me:true},
             {name:'최민서',gender:'여',role:'조원',dept:'경영정보학과',tail:'9012'},
@@ -518,7 +546,8 @@ const GROUPS = [
   {id:'g8', no:3, track:'review', mode:'대면', classId:'c3', name:'13기 데이터 분석 실전반(금융데이터분석) 3조', members:[{name:'박지수',gender:'여',role:'조장'},{name:'이건',gender:'남'},{name:'차민아',gender:'여'},{name:'표준호',gender:'남'}]},
   {id:'g9', no:4, track:'review', mode:'비대면', classId:'c4', name:'13기 SQL 심화반 4조', members:[{name:'정우석',gender:'남',role:'조장'},{name:'홍세라',gender:'여'},{name:'구본진',gender:'남'},{name:'심유나',gender:'여'}]},
   {id:'g10', no:5, track:'review', mode:'대면', classId:'c5', name:'13기 태블로 심화반 5조', members:[{name:'최민정',gender:'여',role:'조장'},{name:'우재혁',gender:'남'},{name:'하늘',gender:'여'},{name:'서동건',gender:'남'}]},
-  {id:'g11', no:3, track:'contest', mode:'비대면', classId:null, name:'13기 공모전 트랙 3조', contest:'데이콘 상시 대회(대체 경로)', ms:'S2', members:[{name:'김윤호',gender:'남',role:'조장'},{name:'안소민',gender:'여'},{name:'유재원',gender:'남'},{name:'라은서',gender:'여'}]}
+  {id:'g11', no:3, track:'contest', mode:'비대면', classId:null, name:'13기 공모전 트랙 3조', contest:'데이콘 상시 대회(대체 경로)', deadline:'상시', alt:'2026-09-22 전환 신고',
+   plan:{S1:'p9', S2:'p11', S3:'p1', S4:'p2'}, reached:{S1:'2026-09-22'}, members:[{name:'김윤호',gender:'남',role:'조장'},{name:'안소민',gender:'여'},{name:'유재원',gender:'남'},{name:'라은서',gender:'여'}]}
 ];
 const G = id => GROUPS.find(g=>g.id===id);
 const MYGROUPS = () => GROUPS.filter(g=>g.mine);
@@ -534,16 +563,16 @@ const SCORES = {
         {id:'E',label:'가산 · 자율활동 1건 (조 이름 만들기)',score:0.5,judge:'검수',note:'사진 1장 + 20자 충족'},
         {id:'P1',label:'지각 제출',score:0,judge:'자동',note:'정상 제출'}],graded:'운영진 대현',at:'2026-10-05'} },
   g2:{ p9:{items:[
-        {id:'M1',label:'필수1 · 공모전 참가 계획서',score:0.8,judge:'반자동',note:'4항목 전부 충족 · S2 착수 도달'},
-        {id:'M2',label:'필수2 · 후보 3개 이상 비교 회의',score:0.8,judge:'반자동',note:'6항목 전부 충족 · 후보 4개 비교'},
+        {id:'M1',label:'필수1 · S2 참가 신청 인증 (9월 목표 단계)',score:0.8,judge:'반자동',note:'S1 계획서 5항목 + S2 신청 인증 4항목 — 한 달에 두 단계 도달, 최종 단계 S2로 판정'},
+        {id:'M2',label:'필수2 · 월별 진척 기록',score:0.8,judge:'반자동',note:'5항목 전부 충족 · 병목 1개 명시 · 다음 달 목표 S4'},
         {id:'M3',label:'만남 요건',score:0.8,judge:'자동',note:'온라인 3회'},
         {id:'M4',label:'증빙·참여',score:0.8,judge:'자동',note:'3요소 충족 · 참여 4/4'},
         {id:'M5',label:'월별 조 후기 (집필 박지훈)',score:0.8,judge:'자동',note:'768자 · 카페 URL 정상'},
         {id:'E',label:'가산 · 공모전 인증 1건',score:0.5,judge:'검수',note:'참가 신청 캡처 확인'},
         {id:'P1',label:'지각 제출',score:0,judge:'자동',note:'정상 제출'}],graded:'운영진 건우',at:'2026-10-04'} },
   g3:{ p9:{items:[
-        {id:'M1',label:'필수1 · 공모전 참가 계획서',score:0.4,judge:'반자동',note:'4항목 중 2항목 — 팀 목표·전체 일정 누락 (S1에서 정체)'},
-        {id:'M2',label:'필수2 · 후보 3개 이상 비교 회의',score:0.8,judge:'반자동',note:'6항목 전부 충족'},
+        {id:'M1',label:'필수1 · S2 참가 신청 인증 (9월 목표 단계)',score:0.4,judge:'반자동',note:'S1까지만 도달 — 참가 신청 미완료로 목표 단계 미달. 11월에 만회 가능'},
+        {id:'M2',label:'필수2 · 월별 진척 기록',score:0.4,judge:'반자동',note:'5항목 중 3항목 — 병목 1개·다음 달 목표 단계 누락'},
         {id:'M3',label:'만남 요건',score:0.4,judge:'자동',note:'온라인 1회만'},
         {id:'M4',label:'증빙·참여',score:0.4,judge:'자동',note:'활동 사진 누락'},
         {id:'M5',label:'월별 조 후기 (집필 윤도현)',score:0.4,judge:'자동',note:'438자 — 600자 미달 · Q1 고유명사 없음으로 검수 큐'},
@@ -1364,20 +1393,47 @@ function tabReviews(g, bare){
 
 /* 공모전 정보 — 공모전 트랙 전용 */
 function tabContest(g){
-  const cur = MILESTONES.findIndex(m=>m.id===(g.ms||'S1'));
+  const now = stageNow(g), tgt = specKey(g, 'p9');
+  const nowIdx = now ? stageIdx(now) : -1;
+  const planMonth = id => { const pid=(g.plan||{})[id]; return pid ? period(pid).label : '미배치'; };
+  const rows = MILESTONES.map(m=>{
+    const done = (g.reached||{})[m.id];
+    const state = done ? '도달' : (stageIdx(m.id)===nowIdx+1 ? '진행 중' : '예정');
+    const tone  = done ? 'badge-success' : (state==='진행 중' ? 'badge-brand' : 'badge-muted');
+    const late  = !done && PERIODS.findIndex(p=>p.id===(g.plan||{})[m.id]) <= PERIODS.findIndex(p=>p.id==='p9');
+    return `<tr>
+      <td class="num">${m.id}</td><td>${m.t}</td>
+      <td class="num">${planMonth(m.id)}</td>
+      <td class="num">${done ? fmt(done) : '—'}</td>
+      <td><span class="badge ${late?'badge-warning':tone} badge-sm">${late?'목표 미달':state}</span></td>
+      <td class="small">${esc(m.m1)}</td></tr>`;
+  }).join('');
+  const dl = g.deadline==='상시' ? '상시' : fmt(g.deadline);
+  const afterTerm = g.deadline!=='상시' && d(g.deadline) > d('2027-02-26');
   return `<section class="card card-lg stack-sm">
       <div class="sec-head"><div><h2 class="h3">공모전 정보</h2>
         <p class="small" style="margin-top:var(--sp-1)">참가·제출 데이터는 공모전 페이지와 연동됩니다.</p></div>
         <a class="btn btn-soft" href="#/career/contest">취업 &gt; 대외활동 &gt; 공모전 ${ic('chevron',16)}</a></div>
-      <div class="soft"><p class="caption">참가 공모전</p><p class="lead" style="margin-top:var(--sp-1)">${esc(g.contest||'미정')}</p></div>
-      <h3 class="label" style="margin-top:var(--sp-2)">마일스톤 진행</h3>
+
+      <div class="stats">
+        ${statCard('trophy','참가 공모전', `<span style="font-size:var(--fs-lead)">${esc(g.contest||'미정')}</span>`, g.alt?('대체 경로 · '+esc(g.alt)):'정식 참가')}
+        ${statCard('calendar','공모전 마감', dl, afterTerm?'기수 종료 이후 — S3 도달로 2월 필수1 인정':'기수 내 마감')}
+        ${statCard('flag','현재 단계', now ? now+'<small> · '+MS(now).t+'</small>' : '미착수', now?('도달일 '+fmt(g.reached[now])):'S1부터 시작')}
+        ${statCard('check','이번 달 목표', tgt+'<small> · '+MS(tgt).t+'</small>', '9월 계획서에서 선언한 기준선')}
+      </div>
+
+      ${callout('info','flag','공모전 트랙 필수1은 <strong>월 고정 산출물이 아니라 마일스톤 도달</strong>로 판정합니다. 조마다 공모전 마감이 다르기 때문에, 9월 계획서에서 <strong>조가 직접 선언한 계획</strong>이 그 조의 기준선이 됩니다. 필수2(진척 기록)는 진도와 무관하게 매달 같은 5항목입니다.')}
+
+      <h3 class="label" style="margin-top:var(--sp-2)">마일스톤 계획 대비 진행</h3>
       <div class="table-wrap"><table>
-        <thead><tr><th scope="col">단계</th><th scope="col">내용</th><th scope="col">상태</th><th scope="col">비고</th></tr></thead>
-        <tbody>${MILESTONES.map((m,i)=>`<tr><td class="num">${m.id}</td><td>${m.t}</td>
-          <td><span class="badge ${i<cur?'badge-success':(i===cur?'badge-brand':'badge-muted')} badge-sm">${i<cur?'완료':(i===cur?'진행 중':'예정')}</span></td>
-          <td>${i<cur?'인증 첨부 확인됨':(i===cur?'이번 달 필수 판정 대상':'—')}</td></tr>`).join('')}</tbody>
+        <thead><tr><th scope="col">단계</th><th scope="col">내용</th><th scope="col">계획 월</th>
+          <th scope="col">실제 도달</th><th scope="col">상태</th><th scope="col">필수1 산출물</th></tr></thead>
+        <tbody>${rows}
+          <tr><td class="num">—</td><td>마무리</td><td class="num">2월</td><td class="num">—</td>
+            <td><span class="badge badge-muted badge-sm">예정</span></td><td class="small">결과 공유 · 최종 회고록</td></tr></tbody>
       </table></div>
-      ${callout('warn','flag','공모전 마감은 외부 일정이라 조마다 다릅니다. 그래서 필수 항목(M1)은 산출물이 아니라 <strong>마일스톤 도달 여부</strong>로 판정합니다. 참가가 무산된 조는 데이콘 상시 대회·교내 공모전 등 <strong>대체 경로</strong>를 같은 마일스톤 구조로 인정합니다.')}
+
+      ${callout('warn','clock','계획 수정은 <strong>기수 중 1회</strong> 운영진 승인으로 가능합니다. 수정 없이 목표 미달이 2개월 연속이면 검수 큐로 넘어갑니다. 참가가 무산되면 데이콘 상시·교내 공모전·자격증 스터디로 전환할 수 있고, <strong>전환을 신고한 달을 새 S1 도달로 인정</strong>합니다.')}
     </section>`;
 }
 
@@ -1498,47 +1554,64 @@ const LOGSPEC = {
       m2:{t:'필수2 · 최종 후기·회고록', viaReview:true}
     }
   },
+  /* 공모전 트랙 — 월이 아니라 마일스톤 단계에 항목을 붙인다 (사양 4.7) */
   contest:{
-    p9:{
-      m1:{t:'필수1 · 참가 계획서', items:[
-        IT('target','참가 공모전 (마감일은 위 상단에 기재)',10,'공모전 정식 명칭','text'),
-        IT('why','공모전 참가 목적',30,''),
-        IT('role','팀 목표 및 조원별 역할',30,'조장·기획·데이터 분석·자료조사·발표'),
-        IT('plan','전체 활동 일정',30,'마감 역산 일정')]},
-      m2:{t:'필수2 · 공모전 후보 3개 이상 비교 회의', items:[
-        IT('c_name','공모전명 (후보 3개)',20,'후보 3개를 모두 적을 것'),
-        IT('c_topic','주제 및 모집 분야',30,''),
-        IT('c_cond','참가 조건',20,''),
-        IT('c_sched','일정',20,'각 후보의 마감일'),
-        IT('c_fit','우리 팀 적합성',30,''),
-        IT('c_pick','최종 선정 이유',30,'')]}
-    },
-    p11:{
-      m1:{t:'필수1 · 중간 산출물 제작', items:[
-        IT('eda','EDA 결과 정리',40,''),
-        IT('dir','데이터 분석 방향 점검',30,''),
-        IT('draft','공모전 기획 초안',40,''),
-        IT('share','현재까지의 분석 결과 공유',30,'')]},
-      m2:{t:'필수2 · 진척 공유 + 병목 1개 선정', items:[
-        IT('now','현재까지 진행 상황',30,''),
-        IT('good','잘 진행되고 있는 부분',20,''),
-        IT('bad','어려움을 겪고 있는 부분',20,''),
+    S1:{
+      m1:{t:'필수1 · S1 참가 계획서', items:[
+        IT('target','참가 공모전 + 마감일',10,'공모전 정식 명칭과 마감일','text'),
+        IT('compare','후보 3개 이상 비교표',120,'후보별 공모전명 · 주제/모집 분야 · 참가 조건 · 일정 · 팀 적합성 · 최종 선정 이유'),
+        IT('why','참가 목적 및 팀 목표',30,''),
+        IT('role','조원별 역할',30,'조장·기획·데이터 분석·자료조사·발표'),
+        IT('msplan','마일스톤 계획 — S2·S3·S4를 각각 어느 달에',30,'예: S2 9월 / S3 11월 / S4 1월. 마감일에서 역산할 것')]},
+      m2:{t:'필수2 · 월별 진척 기록', items:[
+        IT('stage','현재 도달 단계와 근거',20,'예: S1 완료 — 후보 비교표 첨부'),
+        IT('done','이번 달 한 일',30,''),
         IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
-        IT('action','해결을 위한 조원별 의견 및 액션',30,'')]}
+        IT('action','병목 해결을 위한 조원별 액션',30,''),
+        IT('next','다음 달 목표 단계',10,'S2 · S3 · S4 중 택 1','text')]}
     },
-    p1:{
-      m1:{t:'필수1 · 최종 제출물 완성', items:[
-        IT('result','최종 분석 결과 정리',40,''),
-        IT('deck','결과물 및 발표자료 완성',30,''),
+    S2:{
+      m1:{t:'필수1 · S2 참가 신청 인증', items:[
+        IT('proof','접수·신청 화면 인증',20,'캡처 파일명 또는 링크'),
+        IT('team','팀 등록 명단',20,'등록한 팀명과 조원'),
+        IT('type','참가 형태',6,'개인 / 팀','text'),
+        IT('num','접수번호 또는 확인 메일',10,'','text')]},
+      m2:{t:'필수2 · 월별 진척 기록', items:[
+        IT('stage','현재 도달 단계와 근거',20,''),
+        IT('done','이번 달 한 일',30,''),
+        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
+        IT('action','병목 해결을 위한 조원별 액션',30,''),
+        IT('next','다음 달 목표 단계',10,'S3 · S4 중 택 1','text')]}
+    },
+    S3:{
+      m1:{t:'필수1 · S3 산출물 제작', items:[
+        IT('eda','자료 확보 · EDA 결과 정리',40,''),
+        IT('dir','분석 · 기획 방향 점검',30,''),
+        IT('draft','초안 링크 또는 첨부',20,'문서·코드·발표자료'),
+        IT('share','팀 내 리뷰 결과',30,'')]},
+      m2:{t:'필수2 · 월별 진척 기록', items:[
+        IT('stage','현재 도달 단계와 근거',20,''),
+        IT('done','이번 달 한 일',30,''),
+        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
+        IT('action','병목 해결을 위한 조원별 액션',30,''),
+        IT('next','다음 달 목표 단계',10,'S4 또는 마무리','text')]}
+    },
+    S4:{
+      m1:{t:'필수1 · S4 최종 제출', items:[
+        IT('proof','제출 완료 화면 인증',20,'캡처 파일명 또는 링크'),
+        IT('copy','제출물 사본 · 링크',20,''),
         IT('format','제출 형식 및 요구사항 점검',20,''),
-        IT('check','조원별 최종 검토',20,'')]},
-      m2:{t:'필수2 · 실제 제출 인증 + 피드백 반영 내역', items:[
-        IT('proof','실제 제출 화면·완료 인증',20,'캡처 파일명 또는 링크'),
-        IT('fb','제출 전 받은 피드백 내용',30,''),
-        IT('applied','피드백 반영 내용',30,''),
-        IT('notapplied','반영하지 않은 의견과 그 이유',30,'')]}
+        IT('check','조원별 최종 검토',20,''),
+        IT('fb','제출 전 받은 피드백',30,''),
+        IT('applied','반영 내용과 미반영 의견의 이유',30,'')]},
+      m2:{t:'필수2 · 월별 진척 기록', items:[
+        IT('stage','현재 도달 단계와 근거',20,''),
+        IT('done','이번 달 한 일',30,''),
+        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
+        IT('action','병목 해결을 위한 조원별 액션',30,''),
+        IT('next','다음 달 목표',10,'결과 대기 / 2차 도전 등','text')]}
     },
-    p2:{
+    F:{
       m1:{t:'필수1 · 공모전 결과 공유', items:[
         IT('final','최종 결과',20,''),
         IT('award','수상 여부',6,'수상 실패는 감점 요소가 아님','text'),
@@ -1590,7 +1663,7 @@ const tri = (ok,total) => total===0 ? 0 : (ok===total ? .8 : (ok===0 ? 0 : .4));
 function readLogForm(root){
   const track = root.dataset.track;
   const pid = root.querySelector('[name=pid]').value;
-  const spec = LOGSPEC[track][pid];
+  const spec = logSpec(G(root.dataset.gid) || {track:track}, pid);
   const val = n => { const el = root.querySelector(`[name="${n}"]`); return el ? el.value : ''; };
   const chk = n => { const el = root.querySelector(`[name="${n}"]`); return !!(el && el.checked); };
   const files = n => { const el = root.querySelector(`[name="${n}"]`);
@@ -1744,7 +1817,7 @@ function sectionFields(key, sec, g){
 
 function modalLog(g, pid){
   pid = pid || 'p9';
-  const p = period(pid), spec = LOGSPEC[g.track][pid];
+  const p = period(pid), spec = logSpec(g, pid);
   const prior = LOGS.filter(l=>l.gid===g.id && l.pid===pid);
   const priorOff = prior.reduce((a,l)=>a + (l.off!=null ? l.off : (l.loc!=='온라인'?1:0)), 0);
   const priorOn  = prior.reduce((a,l)=>a + (l.on!=null ? l.on : (l.loc==='온라인'?1:0)), 0);
@@ -1752,9 +1825,11 @@ function modalLog(g, pid){
              m2:{ok:0,total:spec.m2.items?spec.m2.items.length:(spec.m2.choice?1:0),items:[],viaReview:!!spec.m2.viaReview},
              off:priorOff, on:priorOn, join:memberCount(g), photoF:[], docF:[], photo:false, doc:false,
              e1:false, e3:false, e1f:[], e3f:[], e1memo:'', e3name:'', e3memo:''};
-  const dueWarn = g.track==='contest' && pid==='p9'
-    ? callout('warn','clock','참가 공모전의 <strong>마감일이 1월 이후</strong>면 1월 필수2(실제 제출 인증)를 채울 수 없습니다. 마감 1월 이전 공모전을 선택하세요.')
-    : '';
+  const tgt = g.track==='contest' ? specKey(g, pid) : null;
+  const dueWarn = g.track!=='contest' ? ''
+    : pid==='p2'
+      ? callout('info','trophy','2월은 <strong>마무리 고정</strong>입니다. 마감이 기수 종료(2/26) 이후인 조는 <strong>S3 도달 + 제출 준비 인증</strong>으로 필수1을 인정합니다 — 수상 여부는 채점에 반영하지 않습니다.')
+      : callout('info','flag','이번 달 목표 단계는 9월 계획서에서 선언한 <strong>'+tgt+' · '+MS(tgt).t+'</strong>입니다. 도달하면 0.8, 착수했으나 미달이면 0.4입니다. 앞서 나가도 0.8이며, 계획 수정은 기수 중 1회 운영진 승인으로 가능합니다.');
   return `<form class="modal stack-sm" data-act="submit-log" data-gid="${g.id}" data-track="${g.track}">
     <div class="row-between"><h2 class="h3">활동일지 제출</h2>
       <button class="btn btn-ghost btn-sm" type="button" data-act="close" aria-label="닫기">${ic('x',16)}</button></div>
@@ -1773,13 +1848,13 @@ function modalLog(g, pid){
     <fieldset class="fset"><legend>공모전 진행 상황</legend>
       <div class="row" style="gap:var(--sp-3);align-items:flex-end">
         <label class="field" style="flex:2"><span>참가 공모전명</span>
-          <input class="input" name="cname" placeholder="예: 2026 금융 빅데이터 분석 공모전"></label>
+          <input class="input" name="cname" value="${esc(g.contest||'')}" placeholder="예: 2026 금융 빅데이터 분석 공모전"></label>
         <label class="field" style="flex:1"><span>공모전 마감일</span>
-          <input class="input" name="cdue" type="date" value="2027-01-15"></label>
+          <input class="input" name="cdue" type="date" value="${g.deadline&&g.deadline!=='상시'?g.deadline:''}"></label>
       </div>
       <div class="row" style="gap:var(--sp-3);align-items:flex-end;margin-top:var(--sp-3)">
         <label class="field" style="flex:1"><span>현재 도달 단계</span>
-          <select class="select" name="cms">${MILESTONES.map(m=>`<option value="${m.id}">${m.id} · ${m.t}</option>`).join('')}</select></label>
+          <select class="select" name="cms">${MILESTONES.map(m=>`<option value="${m.id}" ${m.id===(stageNow(g)||'S1')?'selected':''}>${m.id} · ${m.t}</option>`).join('')}</select></label>
         <label class="field" style="flex:2"><span>대체 경로 전환</span>
           <input class="input" name="calt" placeholder="해당 없음 / 전환 시 사유와 대체 대상"></label>
       </div>
@@ -1832,7 +1907,7 @@ function modalLog(g, pid){
 }
 /* 최초 렌더 시점에는 DOM이 없으므로 빈 값 기준으로 판정 */
 function readLogFormInit(g, pid, f){
-  const spec = LOGSPEC[g.track][pid];
+  const spec = logSpec(g, pid);
   const empty = sec => sec.viaReview ? {viaReview:true, items:[], ok:0, total:0}
     : sec.choice ? {choice:true, items:[], ok:0, total:1}
     : {items:[], ok:0, total:sec.items.length};
@@ -2101,7 +2176,7 @@ function refreshJudge(root){
   const pick = root.querySelector('[name=m2-pick]');
   if(pick){
     const body = root.querySelector('[name=m2-body]');
-    const spec = LOGSPEC[root.dataset.track][root.querySelector('[name=pid]').value];
+    const spec = logSpec(G(root.dataset.gid) || {track:root.dataset.track}, root.querySelector('[name=pid]').value);
     const opt = spec.m2.choice.find(o=>o.v===pick.value);
     if(body && opt){ body.dataset.min = opt.min; body.placeholder = opt.ph; }
   }
