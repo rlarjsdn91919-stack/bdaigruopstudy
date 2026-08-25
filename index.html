@@ -487,40 +487,32 @@ const RUBRIC = {
            p1:['어려운 문제 3개 팀 해결','미해결 문제 발표 또는 성과 요약'], p2:['핵심 개념 5개 + 최종 과제','최종 후기·회고록'] }
 };
 const MILESTONES = [
-  {id:'S1', t:'주제 선정',   m1:'참가 계획서'},
-  {id:'S2', t:'신청·착수',   m1:'참가 신청 인증'},
-  {id:'S3', t:'제출물 작성', m1:'중간·최종 산출물'},
-  {id:'S4', t:'최종 제출',   m1:'제출 완료 인증'}
+  {id:'S1', t:'참가 계획 · 후보 비교', m1:'참가 계획서'},
+  {id:'S2', t:'중간 산출물',          m1:'중간 산출물 제작'},
+  {id:'S3', t:'최종 제출',            m1:'최종 제출물 완성'},
+  {id:'S4', t:'결과 공유 · 회고',      m1:'공모전 결과 공유'}
 ];
-const MS = id => MILESTONES.find(m=>m.id===id) || {id:'F', t:'마무리', m1:'결과 공유'};
+const MS = id => MILESTONES.find(m=>m.id===id) || {id:'DONE', t:'사이클 완료', m1:'—'};
 const stageIdx = id => MILESTONES.findIndex(m=>m.id===id);
 
-/* 조가 9월 계획서에서 선언한 마일스톤 계획 = 그 조의 기준선 */
-function planTarget(g, pid){
-  const pi = PERIODS.findIndex(p=>p.id===pid); let t = null;
-  MILESTONES.forEach(m=>{ const mi = PERIODS.findIndex(p=>p.id===(g.plan||{})[m.id]);
-    if(mi>=0 && mi<=pi) t = m.id; });
-  return t;
-}
 function stageNow(g){
   const done = MILESTONES.filter(m=>(g.reached||{})[m.id]);
   return done.length ? done[done.length-1].id : null;
 }
-/* 지금 작업 중인 단계 = 마지막 도달 단계의 다음. 달력과 무관하다 */
+/* 기본 제안 단계 = 마지막 도달 단계의 다음. 달력과 무관하다 */
 function currentStage(g){
   const now = stageNow(g);
   if(!now) return 'S1';
   const i = stageIdx(now);
-  return i >= MILESTONES.length-1 ? 'F' : MILESTONES[i+1].id;
+  return i >= MILESTONES.length-1 ? 'DONE' : MILESTONES[i+1].id;
 }
-/* 필수활동 내용을 고르는 키 — 복습은 월, 공모전은 현재 도달 단계 */
-function specKey(g, pid){
+/* 필수활동 내용을 고르는 키 — 복습은 월, 공모전은 조가 고른 단계 */
+function specKey(g, pid, stage){
   if(!g || g.track!=='contest') return pid;
-  return currentStage(g);
+  if(stage && stageIdx(stage)>=0) return stage;
+  const c = currentStage(g);
+  return c==='DONE' ? 'S4' : c;
 }
-/* 최종 회고록만 기수 종료 산출물이라 2월 고정 */
-const CONTEST_FINAL_M2 = {t:'필수2 · 최종 회고록', viaReview:true};
-
 /* 사이클 종류 — 공모전을 일찍 마친 조는 같은 S1~S4 골격을 자격증·스터디로 돌려 쓴다 */
 const CYCLE_KINDS = [
   {kind:'contest', t:'2차 공모전', ic:'trophy', d:'새 공모전에 다시 도전합니다. S1부터 같은 구조로 진행합니다.'},
@@ -530,13 +522,12 @@ const CYCLE_KINDS = [
 const kindName = k => (CYCLE_KINDS.find(x=>x.kind===k)||{t:'공모전'}).t;
 const cycleName = g => g.kind && g.kind!=='contest' ? (g.altName||kindName(g.kind)) : (g.contest||'미정');
 
-function logSpec(g, pid){
+function logSpec(g, pid, stage){
   if(g.track!=='contest') return LOGSPEC[g.track][pid];
-  const key = specKey(g, pid), kind = g.kind || 'contest';
+  const key = specKey(g, pid, stage), kind = g.kind || 'contest';
   const set = kind==='contest' ? LOGSPEC.contest : ALTSPEC[kind];
   const base = set[key] || LOGSPEC.contest[key];
-  const m2 = base.m2 || LOGSPEC.contest[key].m2;
-  return pid==='p2' ? {m1:base.m1, m2:CONTEST_FINAL_M2} : {m1:base.m1, m2:m2};
+  return {m1:base.m1, m2: base.m2 || LOGSPEC.contest[key].m2};
 }
 /* 사이클 전환 — 완료 이력을 남기고 S1부터 다시 시작한다 */
 function switchCycle(g, kind, name){
@@ -545,14 +536,6 @@ function switchCycle(g, kind, name){
   g.kind = kind; g.altName = name || ''; g.reached = {};
   if(kind==='contest') g.contest = name || '2차 공모전 (선정 중)';
 }
-/* 계획 대비 위치 — 내용이 아니라 판정·안내에만 쓴다 */
-function planGap(g, pid){
-  const want = planTarget(g, pid), have = stageNow(g);
-  if(!want) return null;
-  const w = stageIdx(want), h = have ? stageIdx(have) : -1;
-  return h > w ? '선행' : (h === w ? '정상' : '지연');
-}
-
 const M = (n,g,cls,role)=>({name:n, gender:g, cls:cls, role:role||'조원', tail:String(1000+Math.floor(Math.random()*8999)).slice(0,4)});
 
 const GROUPS = [
@@ -565,7 +548,7 @@ const GROUPS = [
   {id:'g2', no:2, track:'contest', mode:'비대면', classId:null, name:'13기 공모전 트랙 2조',
    mine:true, state:'활동 중', cafe:'https://cafe.naver.com/officialbac',
    contest:'2026 금융 빅데이터 분석 공모전', deadline:'2026-11-30',
-   plan:{S1:'p9', S2:'p9', S3:'p11', S4:'p11'}, reached:{S1:'2026-09-18', S2:'2026-09-23'},
+   reached:{S1:'2026-09-23'},
    members:[{name:'이서연',gender:'여',role:'조장',dept:'통계학과',tail:'6789'},
             {name:'김다현',gender:'남',role:'조원',dept:'데이터사이언스학과',tail:'5678',me:true},
             {name:'한지우',gender:'여',role:'조원',dept:'컴퓨터공학과',tail:'2345'},
@@ -573,7 +556,7 @@ const GROUPS = [
   {id:'g3', no:1, track:'contest', mode:'대면', classId:null, name:'13기 공모전 트랙 1조',
    mine:true, state:'활동 중', cafe:'https://cafe.naver.com/officialbac',
    contest:'제5회 공공데이터 활용 아이디어 공모전', deadline:'2026-12-15',
-   plan:{S1:'p9', S2:'p9', S3:'p11', S4:'p1'}, reached:{S1:'2026-10-03'},
+   reached:{S1:'2026-10-03'},
    members:[{name:'박지민',gender:'여',role:'조장',dept:'산업공학과',tail:'4567'},
             {name:'김다현',gender:'남',role:'조원',dept:'데이터사이언스학과',tail:'5678',me:true},
             {name:'최민서',gender:'여',role:'조원',dept:'경영정보학과',tail:'9012'},
@@ -586,7 +569,7 @@ const GROUPS = [
   {id:'g9', no:4, track:'review', mode:'비대면', classId:'c4', name:'13기 SQL 심화반 4조', members:[{name:'정우석',gender:'남',role:'조장'},{name:'홍세라',gender:'여'},{name:'구본진',gender:'남'},{name:'심유나',gender:'여'}]},
   {id:'g10', no:5, track:'review', mode:'대면', classId:'c5', name:'13기 태블로 심화반 5조', members:[{name:'최민정',gender:'여',role:'조장'},{name:'우재혁',gender:'남'},{name:'하늘',gender:'여'},{name:'서동건',gender:'남'}]},
   {id:'g11', no:3, track:'contest', mode:'비대면', classId:null, name:'13기 공모전 트랙 3조', contest:'데이콘 상시 대회(대체 경로)', deadline:'상시', alt:'2026-09-22 전환 신고',
-   plan:{S1:'p9', S2:'p11', S3:'p1', S4:'p2'}, reached:{S1:'2026-09-22'}, members:[{name:'김윤호',gender:'남',role:'조장'},{name:'안소민',gender:'여'},{name:'유재원',gender:'남'},{name:'라은서',gender:'여'}]}
+   reached:{S1:'2026-09-22'}, members:[{name:'김윤호',gender:'남',role:'조장'},{name:'안소민',gender:'여'},{name:'유재원',gender:'남'},{name:'라은서',gender:'여'}]}
 ];
 const G = id => GROUPS.find(g=>g.id===id);
 const MYGROUPS = () => GROUPS.filter(g=>g.mine);
@@ -602,16 +585,16 @@ const SCORES = {
         {id:'E',label:'가산 · 자율활동 1건 (조 이름 만들기)',score:0.5,judge:'검수',note:'사진 1장 + 20자 충족'},
         {id:'P1',label:'지각 제출',score:0,judge:'자동',note:'정상 제출'}],graded:'운영진 대현',at:'2026-10-05'} },
   g2:{ p9:{items:[
-        {id:'M1',label:'필수1 · S2 참가 신청 인증 (9월 목표 단계)',score:0.8,judge:'반자동',note:'S1 계획서 5항목 + S2 신청 인증 4항목 — 한 달에 두 단계 도달, 최종 단계 S2로 판정'},
-        {id:'M2',label:'필수2 · 월별 진척 기록',score:0.8,judge:'반자동',note:'5항목 전부 충족 · 병목 1개 명시 · 다음 달 목표 S4'},
+        {id:'M1',label:'필수1 · 참가 계획서 작성하기 (S1)',score:0.8,judge:'반자동',note:'4항목 전부 충족 — 참가 공모전·목적·팀 역할·전체 일정'},
+        {id:'M2',label:'필수2 · 공모전 후보 3개 이상 비교 회의 (S1)',score:0.8,judge:'반자동',note:'6항목 전부 충족 · 후보 4개 비교'},
         {id:'M3',label:'만남 요건',score:0.8,judge:'자동',note:'온라인 3회'},
         {id:'M4',label:'증빙·참여',score:0.8,judge:'자동',note:'3요소 충족 · 참여 4/4'},
         {id:'M5',label:'월별 조 후기 (집필 박지훈)',score:0.8,judge:'자동',note:'768자 · 카페 URL 정상'},
         {id:'E',label:'가산 · 공모전 인증 1건',score:0.5,judge:'검수',note:'참가 신청 캡처 확인'},
         {id:'P1',label:'지각 제출',score:0,judge:'자동',note:'정상 제출'}],graded:'운영진 건우',at:'2026-10-04'} },
   g3:{ p9:{items:[
-        {id:'M1',label:'필수1 · S2 참가 신청 인증 (9월 목표 단계)',score:0.4,judge:'반자동',note:'S1까지만 도달 — 참가 신청 미완료로 목표 단계 미달. 11월에 만회 가능'},
-        {id:'M2',label:'필수2 · 월별 진척 기록',score:0.4,judge:'반자동',note:'5항목 중 3항목 — 병목 1개·다음 달 목표 단계 누락'},
+        {id:'M1',label:'필수1 · 참가 계획서 작성하기 (S1)',score:0.4,judge:'반자동',note:'4항목 중 2항목 — 팀 목표·전체 활동 일정 누락'},
+        {id:'M2',label:'필수2 · 공모전 후보 3개 이상 비교 회의 (S1)',score:0.8,judge:'반자동',note:'6항목 전부 충족'},
         {id:'M3',label:'만남 요건',score:0.4,judge:'자동',note:'온라인 1회만'},
         {id:'M4',label:'증빙·참여',score:0.4,judge:'자동',note:'활동 사진 누락'},
         {id:'M5',label:'월별 조 후기 (집필 윤도현)',score:0.4,judge:'자동',note:'438자 — 600자 미달 · Q1 고유명사 없음으로 검수 큐'},
@@ -1432,21 +1415,23 @@ function tabReviews(g, bare){
 
 /* 공모전 정보 — 공모전 트랙 전용 */
 function tabContest(g){
-  const now = stageNow(g), tgt = currentStage(g), gap = planGap(g, 'p9');
-  const kind = g.kind || 'contest', hist = g.cycles || [], wrap = tgt==='F';
+  const now = stageNow(g), tgt = currentStage(g);
+  const kind = g.kind || 'contest', hist = g.cycles || [], wrap = tgt==='DONE';
   const nowIdx = now ? stageIdx(now) : -1;
   const planMonth = id => { const pid=(g.plan||{})[id]; return pid ? period(pid).label : '미배치'; };
+  const set = kind==='contest' ? LOGSPEC.contest : ALTSPEC[kind];
   const rows = MILESTONES.map(m=>{
-    const done = (g.reached||{})[m.id];
-    const state = done ? '도달' : (stageIdx(m.id)===nowIdx+1 ? '진행 중' : '예정');
-    const tone  = done ? 'badge-success' : (state==='진행 중' ? 'badge-brand' : 'badge-muted');
-    const late  = !done && PERIODS.findIndex(p=>p.id===(g.plan||{})[m.id]) <= PERIODS.findIndex(p=>p.id==='p9');
+    const at = (g.reached||{})[m.id];
+    const sp = (set && set[m.id]) || LOGSPEC.contest[m.id];
+    const state = at ? '도달' : (m.id===tgt ? '진행 중' : '예정');
+    const tone  = at ? 'badge-success' : (m.id===tgt ? 'badge-brand' : 'badge-muted');
+    const logged = LOGS.filter(l=>l.gid===g.id && l.stage===m.id).map(l=>period(l.pid).label).join(', ');
     return `<tr>
-      <td class="num">${m.id}</td><td>${m.t}</td>
-      <td class="num">${planMonth(m.id)}</td>
-      <td class="num">${done ? fmt(done) : '—'}</td>
-      <td><span class="badge ${late?'badge-warning':tone} badge-sm">${late?'목표 미달':state}</span></td>
-      <td class="small">${esc(m.m1)}</td></tr>`;
+      <td class="num">${m.id}</td>
+      <td>${esc(sp.m1.t.replace('필수1 · ',''))}<br><span class="small">${esc(sp.m2.t.replace('필수2 · ',''))}</span></td>
+      <td><span class="badge ${tone} badge-sm">${state}</span></td>
+      <td class="num">${at ? fmt(at) : '—'}</td>
+      <td class="num small">${logged || '—'}</td></tr>`;
   }).join('');
   const dl = g.deadline==='상시' ? '상시' : fmt(g.deadline);
   const afterTerm = g.deadline!=='상시' && d(g.deadline) > d('2027-02-26');
@@ -1461,18 +1446,16 @@ function tabContest(g){
           (kind==='contest'?(g.alt?('대체 경로 · '+esc(g.alt)):'공모전 · 정식 참가'):(kindName(kind)+' 전환')) + (hist.length?(' · '+(hist.length+1)+'번째 사이클'):''))}
         ${statCard('calendar','공모전 마감', dl, afterTerm?'기수 종료 이후 — S3 도달로 2월 필수1 인정':'기수 내 마감')}
         ${statCard('flag','현재 단계', now ? now+'<small> · '+MS(now).t+'</small>' : '미착수', now?('도달일 '+fmt(g.reached[now])):'S1부터 시작')}
-        ${statCard('check','지금 작업 중', tgt+'<small> · '+MS(tgt).t+'</small>', gap==='지연'?('계획 대비 지연 — 목표 '+planTarget(g,'p9')):(gap==='선행'?'계획보다 앞서 있음':'계획대로 진행 중'))}
+        ${statCard('check','다음 단계', wrap?'사이클 완료':(tgt+'<small> · '+MS(tgt).t+'</small>'), wrap?'전환 트랙을 고르세요':'일지에서 단계를 직접 고를 수 있습니다')}
       </div>
 
-      ${callout('info','flag','공모전 트랙의 <strong>필수활동 내용은 달이 아니라 현재 도달 단계를 따라갑니다.</strong> S2까지 도달한 조는 몇 월이든 다음 일지에 S3 산출물을 쓰게 됩니다. 계획 월은 내용을 정하지 않고 <strong>지연 여부 판정</strong>에만 쓰입니다. 필수2(진척 기록)는 진도와 무관하게 매달 같은 5항목이며, 최종 회고록만 2월 고정입니다.')}
+      ${callout('info','flag','필수활동은 <strong>단계(S1~S4)에 붙습니다.</strong> 일지를 쓸 때 조가 이번 일지의 단계를 직접 고르면 그 단계의 필수1·필수2 문항이 뜹니다. <strong>제출 월은 언제 냈는가만 기록</strong>하고 필수활동 내용을 정하지 않습니다.')}
 
-      <h3 class="label" style="margin-top:var(--sp-2)">마일스톤 진행 — 다음 일지의 필수1은 <span class="badge badge-brand badge-sm">${tgt} · ${MS(tgt).t}</span></h3>
+      <h3 class="label" style="margin-top:var(--sp-2)">단계별 필수활동${wrap?'':` — 다음 일지 기본값 <span class="badge badge-brand badge-sm">${tgt} · ${MS(tgt).t}</span>`}</h3>
       <div class="table-wrap"><table>
-        <thead><tr><th scope="col">단계</th><th scope="col">내용</th><th scope="col">계획 월</th>
-          <th scope="col">실제 도달</th><th scope="col">상태</th><th scope="col">필수1 산출물</th></tr></thead>
-        <tbody>${rows}
-          <tr><td class="num">—</td><td>마무리</td><td class="num">2월</td><td class="num">—</td>
-            <td><span class="badge badge-muted badge-sm">예정</span></td><td class="small">결과 공유 · 최종 회고록</td></tr></tbody>
+        <thead><tr><th scope="col">단계</th><th scope="col">필수1 / 필수2</th><th scope="col">상태</th>
+          <th scope="col">도달일</th><th scope="col">제출 월</th></tr></thead>
+        <tbody>${rows}</tbody>
       </table></div>
 
       ${wrap ? `<section class="soft" style="display:flex;flex-direction:column;gap:var(--sp-3)">
@@ -1494,7 +1477,7 @@ function tabContest(g){
 
       ${!wrap ? `<p class="caption">${ic('flag',14)} 데모 — <button class="link" type="button" data-act="demo-finish" data-gid="${g.id}" style="background:none;border:0;padding:0;cursor:pointer;font:inherit">S4까지 완료 처리</button>하면 전환 선택이 열립니다.</p>` : ''}
 
-      ${callout('warn','clock','계획 수정은 <strong>기수 중 1회</strong> 운영진 승인으로 가능합니다. 수정 없이 목표 미달이 2개월 연속이면 검수 큐로 넘어갑니다. 참가가 무산되면 데이콘 상시·교내 공모전·자격증 스터디로 전환할 수 있고, <strong>전환을 신고한 달을 새 S1 도달로 인정</strong>합니다.')}
+      ${callout('warn','clock','참가가 무산되면 데이콘 상시·교내 공모전·자격증·스터디로 전환할 수 있고, <strong>전환을 신고한 달을 새 S1 도달로 인정</strong>합니다. S4까지 마친 조도 같은 방식으로 남은 기간 활동을 이어갑니다.')}
     </section>`;
 }
 
@@ -1615,134 +1598,172 @@ const LOGSPEC = {
       m2:{t:'필수2 · 최종 후기·회고록', viaReview:true}
     }
   },
-  /* 공모전 트랙 — 월이 아니라 마일스톤 단계에 항목을 붙인다 (사양 4.7) */
+  /* 공모전 트랙 — 필수활동은 달이 아니라 단계(S1~S4)에 붙는다. 제출 월은 타임스탬프일 뿐 */
   contest:{
     S1:{
-      m1:{t:'필수1 · S1 참가 계획서', items:[
-        IT('target','참가 공모전 + 마감일',10,'공모전 정식 명칭과 마감일','text'),
-        IT('compare','후보 3개 이상 비교표',120,'후보별 공모전명 · 주제/모집 분야 · 참가 조건 · 일정 · 팀 적합성 · 최종 선정 이유'),
-        IT('why','참가 목적 및 팀 목표',30,''),
-        IT('role','조원별 역할',30,'조장·기획·데이터 분석·자료조사·발표'),
-        IT('msplan','마일스톤 계획 — S2·S3·S4를 각각 어느 달에',30,'예: S2 9월 / S3 11월 / S4 1월. 마감일에서 역산할 것')]},
-      m2:{t:'필수2 · 월별 진척 기록', items:[
-        IT('stage','현재 도달 단계와 근거',20,'예: S1 완료 — 후보 비교표 첨부'),
-        IT('done','이번 달 한 일',30,''),
-        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
-        IT('action','병목 해결을 위한 조원별 액션',30,''),
-        IT('next','다음 달 목표 단계',10,'S2 · S3 · S4 중 택 1','text')]}
+      m1:{t:'필수1 · 참가 계획서 작성하기', items:[
+        IT('target','참가 공모전',10,'공모전 정식 명칭','text'),
+        IT('why','공모전 참가 목적',30,''),
+        IT('role','팀 목표 및 역할',30,'조장·기획·데이터 분석·자료조사·발표'),
+        IT('plan','전체 활동 일정',30,'마감 역산 일정')]},
+      m2:{t:'필수2 · 공모전 후보 3개 이상 비교 회의', note:'일지 작성 필수', items:[
+        IT('c_name','공모전명 (후보 3개)',20,'후보 3개를 모두 적을 것'),
+        IT('c_topic','주제 및 모집 분야',30,''),
+        IT('c_cond','참가 조건',20,''),
+        IT('c_sched','일정',20,'각 후보의 마감일'),
+        IT('c_fit','우리 팀 적합성',30,''),
+        IT('c_pick','최종 선정 이유',30,'')]}
     },
     S2:{
-      m1:{t:'필수1 · S2 참가 신청 인증', items:[
-        IT('proof','접수·신청 화면 인증',20,'캡처 파일명 또는 링크'),
-        IT('team','팀 등록 명단',20,'등록한 팀명과 조원'),
-        IT('type','참가 형태',6,'개인 / 팀','text'),
-        IT('num','접수번호 또는 확인 메일',10,'','text')]},
-      m2:{t:'필수2 · 월별 진척 기록', items:[
-        IT('stage','현재 도달 단계와 근거',20,''),
-        IT('done','이번 달 한 일',30,''),
+      m1:{t:'필수1 · 중간 산출물 제작', items:[
+        IT('eda','EDA 결과 정리',40,''),
+        IT('dir','데이터 분석 방향 점검',30,''),
+        IT('draft','공모전 기획 초안 작성',40,''),
+        IT('share','현재까지의 분석 결과 공유',30,'')]},
+      m2:{t:'필수2 · 진척 상황 공유 + 팀 내 병목 1개 선정', items:[
+        IT('now','현재까지 진행 상황',30,''),
+        IT('good','잘 진행되고 있는 부분',20,''),
+        IT('bad','어려움을 겪고 있는 부분',20,''),
         IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
-        IT('action','병목 해결을 위한 조원별 액션',30,''),
-        IT('next','다음 달 목표 단계',10,'S3 · S4 중 택 1','text')]}
+        IT('action','해결을 위한 팀원별 의견 및 액션',30,'')]}
     },
     S3:{
-      m1:{t:'필수1 · S3 산출물 제작', items:[
-        IT('eda','자료 확보 · EDA 결과 정리',40,''),
-        IT('dir','분석 · 기획 방향 점검',30,''),
-        IT('draft','초안 링크 또는 첨부',20,'문서·코드·발표자료'),
-        IT('share','팀 내 리뷰 결과',30,'')]},
-      m2:{t:'필수2 · 월별 진척 기록', items:[
-        IT('stage','현재 도달 단계와 근거',20,''),
-        IT('done','이번 달 한 일',30,''),
-        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
-        IT('action','병목 해결을 위한 조원별 액션',30,''),
-        IT('next','다음 달 목표 단계',10,'S4 또는 마무리','text')]}
+      m1:{t:'필수1 · 최종 제출물 완성하기', items:[
+        IT('result','최종 분석 결과 정리',40,''),
+        IT('deck','결과물 및 발표자료 완성',30,''),
+        IT('format','제출 형식 및 요구사항 점검',20,''),
+        IT('check','팀원별 최종 검토',20,'')]},
+      m2:{t:'필수2 · 실제 제출 인증 + 피드백 반영 내역', note:'일지 작성 필수', items:[
+        IT('proof','실제 제출 화면 · 제출 완료 인증',20,'캡처 파일명 또는 링크'),
+        IT('fb','제출 전 피드백 내용',30,''),
+        IT('applied','피드백 반영 내용',30,''),
+        IT('notapplied','반영하지 않은 의견 및 이유',30,'')]}
     },
     S4:{
-      m1:{t:'필수1 · S4 최종 제출', items:[
-        IT('proof','제출 완료 화면 인증',20,'캡처 파일명 또는 링크'),
-        IT('copy','제출물 사본 · 링크',20,''),
-        IT('format','제출 형식 및 요구사항 점검',20,''),
-        IT('check','조원별 최종 검토',20,''),
-        IT('fb','제출 전 받은 피드백',30,''),
-        IT('applied','반영 내용과 미반영 의견의 이유',30,'')]},
-      m2:{t:'필수2 · 월별 진척 기록', items:[
-        IT('stage','현재 도달 단계와 근거',20,''),
-        IT('done','이번 달 한 일',30,''),
-        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
-        IT('action','병목 해결을 위한 조원별 액션',30,''),
-        IT('next','다음 달 목표',10,'결과 대기 / 2차 도전 등','text')]}
-    },
-    F:{
-      m1:{t:'필수1 · 공모전 결과 공유 (S4 완료)', items:[
+      m1:{t:'필수1 · 공모전 결과 공유하기', items:[
         IT('final','최종 결과',20,''),
         IT('award','수상 여부',6,'수상 실패는 감점 요소가 아님','text'),
-        IT('opinion','결과에 대한 조원 의견',30,''),
+        IT('opinion','결과에 대한 팀원 의견',30,''),
         IT('review','잘했던 점 및 아쉬웠던 점',30,'')]},
-      m2:{t:'필수2 · 월별 진척 기록', items:[
-        IT('stage','현재 도달 단계와 근거',20,'S4 완료 — 결과 대기 또는 2차 도전'),
-        IT('done','이번 달 한 일',30,''),
-        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
-        IT('action','병목 해결을 위한 조원별 액션',30,''),
-        IT('next','다음 달 목표',10,'결과 대기 / 2차 공모전 S1 착수','text')]}
+      m2:{t:'필수2 · 최종 회고록 작성', note:'일지 작성 필수 · 월별후기 탭에 진행 사진과 후기 업로드 필수', items:[
+        IT('grow','공모전 참가를 통해 성장한 부분',30,''),
+        IT('lack','부족했던 부분',20,''),
+        IT('sad','아쉬웠던 점',20,''),
+        IT('good','좋았던 점',20,''),
+        IT('next','다음 공모전에서 개선할 점',30,'')]}
     }
   }
 };
 
-/* 전환 트랙 — 필수1만 갈아끼우고 필수2(진척 기록)는 공모전과 공유한다 */
+/* 전환 트랙 — 공모전과 같은 S1~S4 골격에 대상만 바꾼다 */
 const ALTSPEC = {
   cert:{
-    S1:{m1:{t:'필수1 · S1 자격증 선정', items:[
-      IT('target','목표 자격증 + 시험일',10,'자격증명과 응시 예정일','text'),
-      IT('compare','후보 2개 이상 비교',100,'자격증명 · 응시 자격 · 시험 범위 · 일정 · 조원 적합성 · 선정 이유'),
-      IT('why','선정 이유와 조 목표',30,''),
-      IT('role','조원별 학습 분담',30,''),
-      IT('plan','학습 계획 — 접수·학습·응시를 각각 언제',30,'시험일에서 역산할 것')]}},
-    S2:{m1:{t:'필수1 · S2 응시 접수 인증', items:[
-      IT('proof','접수 화면 인증',20,'캡처 파일명 또는 링크'),
-      IT('who','접수한 조원 명단',20,''),
-      IT('date','시험 일자·장소',10,'','text'),
-      IT('num','수험번호 또는 접수 확인',10,'','text')]}},
-    S3:{m1:{t:'필수1 · S3 학습 진행', items:[
-      IT('range','이번 달 학습 범위',30,''),
-      IT('note','공동 정리 자료',20,'노션·문서 링크 또는 첨부'),
-      IT('mock','모의고사·기출 풀이 결과',30,'조원별 점수 또는 정답률'),
-      IT('weak','취약 파트와 보완 계획',30,'')]}},
-    S4:{m1:{t:'필수1 · S4 응시 인증', items:[
-      IT('proof','응시 인증',20,'수험표·응시 확인 캡처'),
-      IT('result','결과 또는 발표 예정일',10,'불합격은 감점 요소가 아님','text'),
-      IT('who','응시한 조원 명단',20,''),
-      IT('review','준비 과정 점검',30,'')]}},
-    F:{m1:{t:'필수1 · 자격증 결과 공유', items:[
-      IT('final','최종 결과',20,''),
-      IT('opinion','조원 의견',30,''),
-      IT('review','잘했던 점 및 아쉬웠던 점',30,'')]}}
+    S1:{
+      m1:{t:'필수1 · 자격증 응시 계획서 작성하기', items:[
+        IT('target','목표 자격증',10,'자격증 정식 명칭','text'),
+        IT('why','응시 목적',30,''),
+        IT('role','팀 목표 및 역할',30,'학습 분담·발제 순번'),
+        IT('plan','전체 학습 일정',30,'시험일 역산 일정')]},
+      m2:{t:'필수2 · 자격증 후보 2개 이상 비교 회의', note:'일지 작성 필수', items:[
+        IT('c_name','자격증명 (후보 2개 이상)',20,''),
+        IT('c_scope','시험 범위 및 과목',30,''),
+        IT('c_cond','응시 자격 및 비용',20,''),
+        IT('c_sched','시험 일정',20,'접수일·시험일'),
+        IT('c_fit','우리 팀 적합성',30,''),
+        IT('c_pick','최종 선정 이유',30,'')]}
+    },
+    S2:{
+      m1:{t:'필수1 · 중간 학습 산출물', items:[
+        IT('range','이번 구간 학습 범위 정리',40,''),
+        IT('weak','취약 파트 점검',30,''),
+        IT('note','공동 정리 자료',20,'링크 또는 첨부'),
+        IT('mock','모의고사·기출 결과 공유',30,'조원별 점수 또는 정답률')]},
+      m2:{t:'필수2 · 진척 상황 공유 + 팀 내 병목 1개 선정', items:[
+        IT('now','현재까지 진행 상황',30,''),
+        IT('good','잘 진행되고 있는 부분',20,''),
+        IT('bad','어려움을 겪고 있는 부분',20,''),
+        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
+        IT('action','해결을 위한 팀원별 의견 및 액션',30,'')]}
+    },
+    S3:{
+      m1:{t:'필수1 · 응시 준비 완료하기', items:[
+        IT('result','최종 정리 자료',40,''),
+        IT('drill','기출·모의고사 마무리',30,''),
+        IT('format','접수 내역 · 준비물 · 시험장 점검',20,''),
+        IT('check','팀원별 최종 점검',20,'')]},
+      m2:{t:'필수2 · 실제 응시 인증 + 보완 내역', note:'일지 작성 필수', items:[
+        IT('proof','응시 인증',20,'수험표·응시 확인 캡처'),
+        IT('fb','시험에서 어려웠던 부분',30,''),
+        IT('applied','보완한 내용',30,''),
+        IT('notapplied','보완하지 못한 부분과 이유',30,'')]}
+    },
+    S4:{
+      m1:{t:'필수1 · 자격증 결과 공유하기', items:[
+        IT('final','최종 결과',20,''),
+        IT('award','합격 여부',6,'불합격은 감점 요소가 아님','text'),
+        IT('opinion','결과에 대한 팀원 의견',30,''),
+        IT('review','잘했던 점 및 아쉬웠던 점',30,'')]},
+      m2:{t:'필수2 · 최종 회고록 작성', note:'일지 작성 필수 · 월별후기 탭에 진행 사진과 후기 업로드 필수', items:[
+        IT('grow','자격증 준비를 통해 성장한 부분',30,''),
+        IT('lack','부족했던 부분',20,''),
+        IT('sad','아쉬웠던 점',20,''),
+        IT('good','좋았던 점',20,''),
+        IT('next','다음 도전에서 개선할 점',30,'')]}
+    }
   },
   study:{
-    S1:{m1:{t:'필수1 · S1 스터디 주제 선정', items:[
-      IT('target','스터디 주제',10,'','text'),
-      IT('compare','후보 2개 이상 비교',100,'주제 · 필요 선수지식 · 자료 · 기간 · 조원 적합성 · 선정 이유'),
-      IT('goal','스터디 목표와 결과물 형태',30,'무엇을 남길 것인지'),
-      IT('role','조원별 역할·발제 순번',30,''),
-      IT('plan','주차별 커리큘럼',40,'')]}},
-    S2:{m1:{t:'필수1 · S2 스터디 착수', items:[
-      IT('kickoff','1회차 진행 기록',30,''),
-      IT('source','사용 교재·자료',20,''),
-      IT('rule','운영 규칙',20,'주기·불참 처리·기록 방식'),
-      IT('who','참여 조원 명단',20,'')]}},
-    S3:{m1:{t:'필수1 · S3 중간 산출물', items:[
-      IT('progress','진행한 회차와 다룬 범위',30,''),
-      IT('note','정리 자료·실습 결과',20,'링크 또는 첨부'),
-      IT('issue','막힌 지점과 해결 과정',30,''),
-      IT('review','조원 상호 피드백',30,'')]}},
-    S4:{m1:{t:'필수1 · S4 결과물 공유', items:[
-      IT('output','최종 결과물',20,'문서·코드·발표자료 링크'),
-      IT('share','공유 방식과 대상',20,'카페 게시·발표 등'),
-      IT('learn','조원별 학습 성과',30,''),
-      IT('check','조원별 최종 검토',20,'')]}},
-    F:{m1:{t:'필수1 · 스터디 결과 공유', items:[
-      IT('final','최종 결과물 요약',20,''),
-      IT('opinion','조원 의견',30,''),
-      IT('review','잘했던 점 및 아쉬웠던 점',30,'')]}}
+    S1:{
+      m1:{t:'필수1 · 스터디 계획서 작성하기', items:[
+        IT('target','스터디 주제',10,'','text'),
+        IT('why','스터디 목적 및 결과물 형태',30,'무엇을 남길 것인지'),
+        IT('role','팀 목표 및 역할',30,'발제 순번·기록 담당'),
+        IT('plan','주차별 커리큘럼',40,'')]},
+      m2:{t:'필수2 · 스터디 주제 후보 2개 이상 비교 회의', note:'일지 작성 필수', items:[
+        IT('c_name','주제명 (후보 2개 이상)',20,''),
+        IT('c_scope','다룰 범위',30,''),
+        IT('c_cond','필요 선수지식 · 자료',20,''),
+        IT('c_sched','예상 기간',20,''),
+        IT('c_fit','우리 팀 적합성',30,''),
+        IT('c_pick','최종 선정 이유',30,'')]}
+    },
+    S2:{
+      m1:{t:'필수1 · 중간 산출물 제작', items:[
+        IT('progress','진행한 회차와 다룬 범위',40,''),
+        IT('dir','남은 커리큘럼 점검',30,''),
+        IT('note','정리 자료 · 실습 결과',20,'링크 또는 첨부'),
+        IT('share','현재까지의 학습 결과 공유',30,'')]},
+      m2:{t:'필수2 · 진척 상황 공유 + 팀 내 병목 1개 선정', items:[
+        IT('now','현재까지 진행 상황',30,''),
+        IT('good','잘 진행되고 있는 부분',20,''),
+        IT('bad','어려움을 겪고 있는 부분',20,''),
+        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
+        IT('action','해결을 위한 팀원별 의견 및 액션',30,'')]}
+    },
+    S3:{
+      m1:{t:'필수1 · 최종 결과물 완성하기', items:[
+        IT('result','학습 내용 최종 정리',40,''),
+        IT('deck','결과물 · 발표자료 완성',30,''),
+        IT('format','공유 형식 점검',20,'카페 게시·발표 등'),
+        IT('check','팀원별 최종 검토',20,'')]},
+      m2:{t:'필수2 · 결과물 공유 인증 + 피드백 반영 내역', note:'일지 작성 필수', items:[
+        IT('proof','공유 완료 인증',20,'게시 화면 캡처 또는 링크'),
+        IT('fb','받은 피드백 내용',30,''),
+        IT('applied','피드백 반영 내용',30,''),
+        IT('notapplied','반영하지 않은 의견 및 이유',30,'')]}
+    },
+    S4:{
+      m1:{t:'필수1 · 스터디 결과 공유하기', items:[
+        IT('final','최종 결과물 요약',20,''),
+        IT('award','목표 달성 여부',6,'미달성은 감점 요소가 아님','text'),
+        IT('opinion','결과에 대한 팀원 의견',30,''),
+        IT('review','잘했던 점 및 아쉬웠던 점',30,'')]},
+      m2:{t:'필수2 · 최종 회고록 작성', note:'일지 작성 필수 · 월별후기 탭에 진행 사진과 후기 업로드 필수', items:[
+        IT('grow','스터디를 통해 성장한 부분',30,''),
+        IT('lack','부족했던 부분',20,''),
+        IT('sad','아쉬웠던 점',20,''),
+        IT('good','좋았던 점',20,''),
+        IT('next','다음 스터디에서 개선할 점',30,'')]}
+    }
   }
 };
 
@@ -1787,7 +1808,7 @@ const tri = (ok,total) => total===0 ? 0 : (ok===total ? .8 : (ok===0 ? 0 : .4));
 function readLogForm(root){
   const track = root.dataset.track;
   const pid = root.querySelector('[name=pid]').value;
-  const spec = logSpec(G(root.dataset.gid) || {track:track}, pid);
+  const spec = logSpec(G(root.dataset.gid) || {track:track}, pid, root.dataset.stage);
   const val = n => { const el = root.querySelector(`[name="${n}"]`); return el ? el.value : ''; };
   const chk = n => { const el = root.querySelector(`[name="${n}"]`); return !!(el && el.checked); };
   const files = n => { const el = root.querySelector(`[name="${n}"]`);
@@ -1939,9 +1960,10 @@ function sectionFields(key, sec, g){
   return sec.items.map(it=>itemField(key, it)).join('');
 }
 
-function modalLog(g, pid){
+function modalLog(g, pid, stage){
   pid = pid || 'p9';
-  const p = period(pid), spec = logSpec(g, pid);
+  const stg = g.track==='contest' ? specKey(g, pid, stage) : null;
+  const p = period(pid), spec = logSpec(g, pid, stage);
   const prior = LOGS.filter(l=>l.gid===g.id && l.pid===pid);
   const priorOff = prior.reduce((a,l)=>a + (l.off!=null ? l.off : (l.loc!=='온라인'?1:0)), 0);
   const priorOn  = prior.reduce((a,l)=>a + (l.on!=null ? l.on : (l.loc==='온라인'?1:0)), 0);
@@ -1949,21 +1971,23 @@ function modalLog(g, pid){
              m2:{ok:0,total:spec.m2.items?spec.m2.items.length:(spec.m2.choice?1:0),items:[],viaReview:!!spec.m2.viaReview},
              off:priorOff, on:priorOn, join:memberCount(g), photoF:[], docF:[], photo:false, doc:false,
              e1:false, e3:false, e1f:[], e3f:[], e1memo:'', e3name:'', e3memo:''};
-  const tgt = g.track==='contest' ? specKey(g, pid) : null;
   const done = g.track==='contest' ? stageNow(g) : null;
-  const gap  = g.track==='contest' ? planGap(g, pid) : null;
-  const gapTxt = gap==='지연' ? ' 계획상 이번 달 목표는 <strong>'+planTarget(g,pid)+'</strong>였습니다 — 이번 달에 도달하면 만회됩니다.'
-               : gap==='선행' ? ' 계획보다 앞서 있습니다.' : '';
+  const stagePick = g.track!=='contest' ? '' : `
+    <label class="field" style="flex:1;min-width:200px"><span>이번 일지의 단계</span>
+      <select class="select" name="stage" data-act="log-stage">
+        ${MILESTONES.map(m=>`<option value="${m.id}" ${m.id===stg?'selected':''}>${m.id} · ${m.t}${(g.reached||{})[m.id]?' (도달)':''}</option>`).join('')}
+      </select>
+      <span class="caption">단계를 바꾸면 아래 필수1·2 문항이 그 단계 것으로 바뀝니다</span></label>`;
   const dueWarn = g.track!=='contest' ? ''
-    : callout('info','flag','지금 작업 중인 단계는 <strong>'+tgt+' · '+MS(tgt).t+'</strong>입니다'
-        + (done ? ' (마지막 도달 '+done+').' : ' (아직 도달한 단계 없음).')
-        + ' 필수활동 내용은 <strong>달이 아니라 이 단계</strong>를 따라갑니다.' + gapTxt)
-      + (pid==='p2' ? callout('info','trophy','2월 필수2는 <strong>최종 회고록</strong>으로 고정됩니다. 마감이 기수 종료(2/26) 이후인 조는 S3 도달 + 제출 준비 인증으로 필수1을 인정하며, 수상 여부는 채점에 반영하지 않습니다.') : '');
-  return `<form class="modal stack-sm" data-act="submit-log" data-gid="${g.id}" data-track="${g.track}">
+    : callout('info','flag','필수활동은 <strong>제출 월이 아니라 단계</strong>에 붙습니다. 제출 월은 <strong>언제 냈는가</strong>만 기록합니다.'
+        + (done ? ' 현재 도달 단계는 <strong>'+done+'</strong>입니다.' : ' 아직 도달한 단계가 없습니다.')
+        + ' 이번 일지는 <strong>'+stg+' · '+MS(stg).t+'</strong> 기준으로 채점됩니다.');
+  return `<form class="modal stack-sm" data-act="submit-log" data-gid="${g.id}" data-track="${g.track}" data-stage="${stg||''}">
     <div class="row-between"><h2 class="h3">활동일지 제출</h2>
       <button class="btn btn-ghost btn-sm" type="button" data-act="close" aria-label="닫기">${ic('x',16)}</button></div>
     <div class="row" style="gap:var(--sp-3);align-items:flex-end">
       ${groupPicker(g, 'log-group')}
+      ${stagePick}
       <label class="field" style="flex:1;min-width:150px"><span>제출 월</span>
         <select class="select" name="pid" data-act="log-period">
           ${PERIODS.map(x=>`<option value="${x.id}" ${x.id===pid?'selected':''}>${x.label} · ${x.theme}</option>`).join('')}
@@ -1993,6 +2017,7 @@ function modalLog(g, pid){
     <fieldset class="fset"><legend>${esc(spec.m1.t)}</legend>
       ${sectionFields('m1', spec.m1, g)}</fieldset>
     <fieldset class="fset"><legend>${esc(spec.m2.t)}</legend>
+      ${spec.m2.note?`<p class="caption" style="margin-bottom:var(--sp-2)">${ic('check',14)} ${esc(spec.m2.note)}</p>`:''}
       ${sectionFields('m2', spec.m2, g)}</fieldset>
 
     <fieldset class="fset"><legend>M3 만남 · M4 증빙·참여</legend>
@@ -2035,8 +2060,8 @@ function modalLog(g, pid){
   </form>`;
 }
 /* 최초 렌더 시점에는 DOM이 없으므로 빈 값 기준으로 판정 */
-function readLogFormInit(g, pid, f){
-  const spec = logSpec(g, pid);
+function readLogFormInit(g, pid, f, stage){
+  const spec = logSpec(g, pid, stage);
   const empty = sec => sec.viaReview ? {viaReview:true, items:[], ok:0, total:0}
     : sec.choice ? {choice:true, items:[], ok:0, total:1}
     : {items:[], ok:0, total:sec.items.length};
@@ -2264,7 +2289,7 @@ function layer(){
   const el = document.getElementById('layer');
   if(!S.modal){ el.innerHTML=''; return; }
   const g = G(S.modal.gid) || MYGROUPS()[0];
-  const inner = S.modal.kind==='log' ? modalLog(g, S.modal.pid)
+  const inner = S.modal.kind==='log' ? modalLog(g, S.modal.pid, S.modal.stage)
     : S.modal.kind==='review' ? modalReview(g, S.modal.pid)
     : S.modal.kind==='appeal' ? modalAppeal()
     : modalSchedule();
@@ -2305,7 +2330,7 @@ function refreshJudge(root){
   const pick = root.querySelector('[name=m2-pick]');
   if(pick){
     const body = root.querySelector('[name=m2-body]');
-    const spec = logSpec(G(root.dataset.gid) || {track:root.dataset.track}, root.querySelector('[name=pid]').value);
+    const spec = logSpec(G(root.dataset.gid) || {track:root.dataset.track}, root.querySelector('[name=pid]').value, root.dataset.stage);
     const opt = spec.m2.choice.find(o=>o.v===pick.value);
     if(body && opt){ body.dataset.min = opt.min; body.placeholder = opt.ph; }
   }
@@ -2364,7 +2389,8 @@ document.addEventListener('change', e=>{
   else if(t.dataset.act==='log-period' || t.dataset.act==='review-period'){
     S.modal.pid = t.value; layer(); }
   else if(t.dataset.act==='review-group' || t.dataset.act==='log-group'){
-    S.modal.gid = t.value; layer(); }
+    S.modal.gid = t.value; S.modal.stage = null; layer(); }
+  else if(t.dataset.act==='log-stage'){ S.modal.stage = t.value; layer(); }
   else if(t.hasAttribute('data-live')){ refreshJudge(t.closest('form')); }
 });
 document.addEventListener('submit', e=>{
@@ -2374,7 +2400,7 @@ document.addEventListener('submit', e=>{
     const g = G(f.dataset.gid), v = readLogForm(f), j = autoJudge(g, v);
     const flat = part => part.items.filter(it=>it.v).map(it=>it.l+' — '+it.v).join(' / ');
     const body = [flat(v.m1), flat(v.m2)].filter(Boolean).join(' | ') || '(항목 미작성)';
-    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, type:deriveType(v), loc:deriveLoc(v.off, v.on),
+    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, stage:(g.track==='contest'?(f.dataset.stage||null):null), type:deriveType(v), loc:deriveLoc(v.off, v.on),
       date:TODAY.toISOString().slice(0,10), author:g.members.find(m=>m.me)?.name || g.members[0].name,
       title:v.title, join:v.join, of:memberCount(g),
       off:v.off, on:v.on,
