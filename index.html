@@ -506,13 +506,32 @@ function stageNow(g){
   const done = MILESTONES.filter(m=>(g.reached||{})[m.id]);
   return done.length ? done[done.length-1].id : null;
 }
-/* 그 달 폼·판정에 쓸 키 — 복습은 월, 공모전은 단계(2월은 마무리 고정) */
+/* 지금 작업 중인 단계 = 마지막 도달 단계의 다음. 달력과 무관하다 */
+function currentStage(g){
+  const now = stageNow(g);
+  if(!now) return 'S1';
+  const i = stageIdx(now);
+  return i >= MILESTONES.length-1 ? 'F' : MILESTONES[i+1].id;
+}
+/* 필수활동 내용을 고르는 키 — 복습은 월, 공모전은 현재 도달 단계 */
 function specKey(g, pid){
   if(!g || g.track!=='contest') return pid;
-  if(pid==='p2') return 'F';
-  return planTarget(g, pid) || 'S1';
+  return currentStage(g);
 }
-const logSpec = (g, pid) => LOGSPEC[g.track][specKey(g, pid)];
+/* 최종 회고록만 기수 종료 산출물이라 2월 고정 */
+const CONTEST_FINAL_M2 = {t:'필수2 · 최종 회고록', viaReview:true};
+function logSpec(g, pid){
+  if(g.track!=='contest') return LOGSPEC[g.track][pid];
+  const base = LOGSPEC.contest[specKey(g, pid)];
+  return pid==='p2' ? {m1:base.m1, m2:CONTEST_FINAL_M2} : base;
+}
+/* 계획 대비 위치 — 내용이 아니라 판정·안내에만 쓴다 */
+function planGap(g, pid){
+  const want = planTarget(g, pid), have = stageNow(g);
+  if(!want) return null;
+  const w = stageIdx(want), h = have ? stageIdx(have) : -1;
+  return h > w ? '선행' : (h === w ? '정상' : '지연');
+}
 
 const M = (n,g,cls,role)=>({name:n, gender:g, cls:cls, role:role||'조원', tail:String(1000+Math.floor(Math.random()*8999)).slice(0,4)});
 
@@ -1393,7 +1412,7 @@ function tabReviews(g, bare){
 
 /* 공모전 정보 — 공모전 트랙 전용 */
 function tabContest(g){
-  const now = stageNow(g), tgt = specKey(g, 'p9');
+  const now = stageNow(g), tgt = currentStage(g), gap = planGap(g, 'p9');
   const nowIdx = now ? stageIdx(now) : -1;
   const planMonth = id => { const pid=(g.plan||{})[id]; return pid ? period(pid).label : '미배치'; };
   const rows = MILESTONES.map(m=>{
@@ -1419,12 +1438,12 @@ function tabContest(g){
         ${statCard('trophy','참가 공모전', `<span style="font-size:var(--fs-lead)">${esc(g.contest||'미정')}</span>`, g.alt?('대체 경로 · '+esc(g.alt)):'정식 참가')}
         ${statCard('calendar','공모전 마감', dl, afterTerm?'기수 종료 이후 — S3 도달로 2월 필수1 인정':'기수 내 마감')}
         ${statCard('flag','현재 단계', now ? now+'<small> · '+MS(now).t+'</small>' : '미착수', now?('도달일 '+fmt(g.reached[now])):'S1부터 시작')}
-        ${statCard('check','이번 달 목표', tgt+'<small> · '+MS(tgt).t+'</small>', '9월 계획서에서 선언한 기준선')}
+        ${statCard('check','지금 작업 중', tgt+'<small> · '+MS(tgt).t+'</small>', gap==='지연'?('계획 대비 지연 — 목표 '+planTarget(g,'p9')):(gap==='선행'?'계획보다 앞서 있음':'계획대로 진행 중'))}
       </div>
 
-      ${callout('info','flag','공모전 트랙 필수1은 <strong>월 고정 산출물이 아니라 마일스톤 도달</strong>로 판정합니다. 조마다 공모전 마감이 다르기 때문에, 9월 계획서에서 <strong>조가 직접 선언한 계획</strong>이 그 조의 기준선이 됩니다. 필수2(진척 기록)는 진도와 무관하게 매달 같은 5항목입니다.')}
+      ${callout('info','flag','공모전 트랙의 <strong>필수활동 내용은 달이 아니라 현재 도달 단계를 따라갑니다.</strong> S2까지 도달한 조는 몇 월이든 다음 일지에 S3 산출물을 쓰게 됩니다. 계획 월은 내용을 정하지 않고 <strong>지연 여부 판정</strong>에만 쓰입니다. 필수2(진척 기록)는 진도와 무관하게 매달 같은 5항목이며, 최종 회고록만 2월 고정입니다.')}
 
-      <h3 class="label" style="margin-top:var(--sp-2)">마일스톤 계획 대비 진행</h3>
+      <h3 class="label" style="margin-top:var(--sp-2)">마일스톤 진행 — 다음 일지의 필수1은 <span class="badge badge-brand badge-sm">${tgt} · ${MS(tgt).t}</span></h3>
       <div class="table-wrap"><table>
         <thead><tr><th scope="col">단계</th><th scope="col">내용</th><th scope="col">계획 월</th>
           <th scope="col">실제 도달</th><th scope="col">상태</th><th scope="col">필수1 산출물</th></tr></thead>
@@ -1612,12 +1631,17 @@ const LOGSPEC = {
         IT('next','다음 달 목표',10,'결과 대기 / 2차 도전 등','text')]}
     },
     F:{
-      m1:{t:'필수1 · 공모전 결과 공유', items:[
+      m1:{t:'필수1 · 공모전 결과 공유 (S4 완료)', items:[
         IT('final','최종 결과',20,''),
         IT('award','수상 여부',6,'수상 실패는 감점 요소가 아님','text'),
         IT('opinion','결과에 대한 조원 의견',30,''),
         IT('review','잘했던 점 및 아쉬웠던 점',30,'')]},
-      m2:{t:'필수2 · 최종 회고록', viaReview:true}
+      m2:{t:'필수2 · 월별 진척 기록', items:[
+        IT('stage','현재 도달 단계와 근거',20,'S4 완료 — 결과 대기 또는 2차 도전'),
+        IT('done','이번 달 한 일',30,''),
+        IT('block','가장 큰 병목 1개',20,'하나만 고를 것'),
+        IT('action','병목 해결을 위한 조원별 액션',30,''),
+        IT('next','다음 달 목표',10,'결과 대기 / 2차 공모전 S1 착수','text')]}
     }
   }
 };
@@ -1826,10 +1850,15 @@ function modalLog(g, pid){
              off:priorOff, on:priorOn, join:memberCount(g), photoF:[], docF:[], photo:false, doc:false,
              e1:false, e3:false, e1f:[], e3f:[], e1memo:'', e3name:'', e3memo:''};
   const tgt = g.track==='contest' ? specKey(g, pid) : null;
+  const done = g.track==='contest' ? stageNow(g) : null;
+  const gap  = g.track==='contest' ? planGap(g, pid) : null;
+  const gapTxt = gap==='지연' ? ' 계획상 이번 달 목표는 <strong>'+planTarget(g,pid)+'</strong>였습니다 — 이번 달에 도달하면 만회됩니다.'
+               : gap==='선행' ? ' 계획보다 앞서 있습니다.' : '';
   const dueWarn = g.track!=='contest' ? ''
-    : pid==='p2'
-      ? callout('info','trophy','2월은 <strong>마무리 고정</strong>입니다. 마감이 기수 종료(2/26) 이후인 조는 <strong>S3 도달 + 제출 준비 인증</strong>으로 필수1을 인정합니다 — 수상 여부는 채점에 반영하지 않습니다.')
-      : callout('info','flag','이번 달 목표 단계는 9월 계획서에서 선언한 <strong>'+tgt+' · '+MS(tgt).t+'</strong>입니다. 도달하면 0.8, 착수했으나 미달이면 0.4입니다. 앞서 나가도 0.8이며, 계획 수정은 기수 중 1회 운영진 승인으로 가능합니다.');
+    : callout('info','flag','지금 작업 중인 단계는 <strong>'+tgt+' · '+MS(tgt).t+'</strong>입니다'
+        + (done ? ' (마지막 도달 '+done+').' : ' (아직 도달한 단계 없음).')
+        + ' 필수활동 내용은 <strong>달이 아니라 이 단계</strong>를 따라갑니다.' + gapTxt)
+      + (pid==='p2' ? callout('info','trophy','2월 필수2는 <strong>최종 회고록</strong>으로 고정됩니다. 마감이 기수 종료(2/26) 이후인 조는 S3 도달 + 제출 준비 인증으로 필수1을 인정하며, 수상 여부는 채점에 반영하지 않습니다.') : '');
   return `<form class="modal stack-sm" data-act="submit-log" data-gid="${g.id}" data-track="${g.track}">
     <div class="row-between"><h2 class="h3">활동일지 제출</h2>
       <button class="btn btn-ghost btn-sm" type="button" data-act="close" aria-label="닫기">${ic('x',16)}</button></div>
