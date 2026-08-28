@@ -801,7 +801,7 @@ function logRow(l){
     <span class="avatar">${esc(l.author.slice(0,1))}</span>
     <div style="flex:1;min-width:0">
       <div class="row" style="gap:var(--sp-2)">
-        ${trackBadge(g.track)}<span class="badge badge-brand badge-sm">${period(l.pid).label}</span><span class="badge badge-muted badge-sm">${l.type}</span>
+        ${trackBadge(g.track)}<span class="badge badge-brand badge-sm">${period(l.pid).label}</span>${l.stage?`<span class="badge badge-info badge-sm">${l.stage} · ${MS(l.stage).t}</span>`:''}<span class="badge badge-muted badge-sm">${l.type}</span>
         <span class="badge ${st} badge-sm">${l.status} 제출</span>
         <span class="caption num" style="margin-left:auto">${fmt(l.date)}</span>
       </div>
@@ -1836,7 +1836,7 @@ function readLogForm(root){
     e1: chk('e1'), e3: chk('e3'),
     e1f: files('e1file'), e1memo: val('e1-memo'),
     e3f: files('e3file'), e3name: val('e3name'), e3memo: val('e3-memo'),
-    cname: val('cname'), cdue: val('cdue'), cms: val('cms'), calt: val('calt')
+    cname: val('cname'), cdue: val('cdue'), calt: val('calt')
   };
 }
 
@@ -1975,11 +1975,11 @@ function modalLog(g, pid, stage){
              e1:false, e3:false, e1f:[], e3f:[], e1memo:'', e3name:'', e3memo:''};
   const done = g.track==='contest' ? stageNow(g) : null;
   const stagePick = g.track!=='contest' ? '' : `
-    <label class="field" style="flex:1;min-width:200px"><span>이번 일지의 단계</span>
+    <label class="field" style="flex:1;min-width:200px"><span>도달 단계</span>
       <select class="select" name="stage" data-act="log-stage">
-        ${MILESTONES.map(m=>`<option value="${m.id}" ${m.id===stg?'selected':''}>${m.id} · ${m.t}${(g.reached||{})[m.id]?' (도달)':''}</option>`).join('')}
+        ${MILESTONES.map(m=>`<option value="${m.id}" ${m.id===stg?'selected':''}>${m.id} · ${m.t}${(g.reached||{})[m.id]?' (도달함)':''}</option>`).join('')}
       </select>
-      <span class="caption">단계를 바꾸면 아래 필수1·2 문항이 그 단계 것으로 바뀝니다</span></label>`;
+      <span class="caption">고른 단계로 아래 필수1·2 문항이 바뀌고, 제출하면 그 단계에 도달한 것으로 기록됩니다</span></label>`;
   const dueWarn = g.track!=='contest' ? ''
     : callout('info','flag','필수활동은 <strong>제출 월이 아니라 단계</strong>에 붙습니다. 제출 월은 <strong>언제 냈는가</strong>만 기록합니다.'
         + (done ? ' 현재 도달 단계는 <strong>'+done+'</strong>입니다.' : ' 아직 도달한 단계가 없습니다.')
@@ -2007,12 +2007,9 @@ function modalLog(g, pid, stage){
         <label class="field" style="flex:1"><span>공모전 마감일</span>
           <input class="input" name="cdue" type="date" value="${g.deadline&&g.deadline!=='상시'?g.deadline:''}"></label>
       </div>
-      <div class="row" style="gap:var(--sp-3);align-items:flex-end;margin-top:var(--sp-3)">
-        <label class="field" style="flex:1"><span>현재 도달 단계</span>
-          <select class="select" name="cms">${MILESTONES.map(m=>`<option value="${m.id}" ${m.id===(stageNow(g)||'S1')?'selected':''}>${m.id} · ${m.t}</option>`).join('')}</select></label>
-        <label class="field" style="flex:2"><span>대체 경로 전환</span>
-          <input class="input" name="calt" placeholder="해당 없음 / 전환 시 사유와 대체 대상"></label>
-      </div>
+      <label class="field" style="margin-top:var(--sp-3)"><span>대체 경로 전환</span>
+        <input class="input" name="calt" placeholder="해당 없음 / 전환 시 사유와 대체 대상">
+        <span class="caption">참가가 무산돼 데이콘 상시·교내 공모전·자격증 등으로 전환한 경우 적습니다. 단계 구조와 채점은 그대로입니다.</span></label>
       ${dueWarn}
     </fieldset>` : ''}
 
@@ -2400,9 +2397,19 @@ document.addEventListener('submit', e=>{
   const act = f.dataset.act;
   if(act==='submit-log'){
     const g = G(f.dataset.gid), v = readLogForm(f), j = autoJudge(g, v);
+    const stg = g.track==='contest' ? (f.dataset.stage||null) : null;
+    if(stg){
+      g.reached = g.reached || {};
+      if(!g.reached[stg]) g.reached[stg] = TODAY.toISOString().slice(0,10);
+      if((g.kind||'contest')==='contest'){
+        if(v.cname.trim()) g.contest = v.cname.trim();
+        if(v.cdue) g.deadline = v.cdue;
+      } else if(v.cname.trim()) g.altName = v.cname.trim();
+    }
     const flat = part => part.items.filter(it=>it.v).map(it=>it.l+' — '+it.v).join(' / ');
     const body = [flat(v.m1), flat(v.m2)].filter(Boolean).join(' | ') || '(항목 미작성)';
-    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, stage:(g.track==='contest'?(f.dataset.stage||null):null), type:deriveType(v), loc:deriveLoc(v.off, v.on),
+    LOGS.unshift({id:'j'+(LOGS.length+1), gid:g.id, pid:v.pid, stage:stg, type:deriveType(v), loc:deriveLoc(v.off, v.on),
+      cname:v.cname.trim()||null, cdue:v.cdue||null, calt:v.calt.trim()||null,
       date:TODAY.toISOString().slice(0,10), author:g.members.find(m=>m.me)?.name || g.members[0].name,
       title:v.title, join:v.join, of:memberCount(g),
       off:v.off, on:v.on,
@@ -2412,7 +2419,7 @@ document.addEventListener('submit', e=>{
       status: dday(period(v.pid).due)<0?'지각':'정상', score:null, graded:false,
       body});
     S.modal=null; render();
-    toast(`활동일지를 제출했습니다 — 자동 판정 ${money(j.total)}점 (M1 ${money(j.M1)} · M2 ${money(j.M2)})`);
+    toast(`활동일지를 제출했습니다 — ${stg?stg+' 도달 · ':''}자동 판정 ${money(j.total)}점 (M1 ${money(j.M1)} · M2 ${money(j.M2)})`);
   } else if(act==='submit-review'){
     const v = readReviewForm(f), j = judgeReview(v), g = v.g;
     if(j.nothing){ toast('후기 내용을 입력해 주세요'); return; }
