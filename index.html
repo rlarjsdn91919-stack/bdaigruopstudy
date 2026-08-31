@@ -2080,7 +2080,7 @@ function readReviewForm(root){
     const el = root.querySelector(`[name="a${i}"]`);
     return el ? el.value : '';
   });
-  return {g, pid, spec, answers, url: (root.querySelector('[name=url]')||{}).value || '',
+  return {g, pid, spec, answers,
           writer: (root.querySelector('[name=writer]')||{}).value || ''};
 }
 function judgeReview(f){
@@ -2088,11 +2088,10 @@ function judgeReview(f){
   const short = [];
   f.answers.forEach((s,i)=>{ if(clen(s) < f.spec[i].min) short.push('Q'+(i+1)); });
   const writerOk = !!f.writer;
-  const urlOk = /^https?:\/\/cafe\.naver\.com\/\S+/i.test(f.url.trim());
   const late = dday(period(f.pid).due) < 0;
-  const nothing = total===0 && !f.url.trim();
+  const nothing = total===0;
   const score = nothing ? 0
-    : (!writerOk || !urlOk || short.length || total < REV_MIN) ? .4 : .8;
+    : (!writerOk || short.length || total < REV_MIN) ? .4 : .8;
 
   const queue = [];
   for(let i=0;i<f.answers.length;i++)
@@ -2102,7 +2101,7 @@ function judgeReview(f){
   if(f.answers.some(repeatedSentence)) queue.push('같은 문장이 3회 이상 반복됩니다');
   if(f.pid!=='p2' && clen(f.answers[0])>40 && !hasProperNoun(f.answers[0]))
     queue.push('Q1에 분반명·개념명 같은 고유명사가 없습니다');
-  return {total, short, writerOk, urlOk, late, nothing, score, queue};
+  return {total, short, writerOk, late, nothing, score, queue};
 }
 function bigrams(s){
   const t = String(s).replace(/[\s.,!?~·…"'()\[\]]/g,''), set = {};
@@ -2136,7 +2135,6 @@ function reviewJudgePanel(f){
         ${money(j.score)} / 0.8${j.late?' · 지각 −0.5':''}</span></div>
     <div class="table-wrap" style="margin-top:var(--sp-2)"><table><tbody>
       ${line('집필자 지정', j.writerOk, j.writerOk?'지정됨':'미지정 — 지정하지 않으면 0.4')}
-      ${line('카페 URL 형식', j.urlOk, j.urlOk?'정상':'cafe.naver.com 주소가 필요합니다')}
       ${line('문항 최소 분량', j.short.length===0, j.short.length?j.short.join('·')+' 미달':'전 문항 충족')}
       ${line('총 분량', j.total>=REV_MIN, `${j.total}자 / ${REV_MIN}~${REV_MAX}자${j.total>REV_MAX?' · 상한 초과(경고)':''}`)}
       ${line('마감', !j.late, `${fmt(period(f.pid).due)} · ${ddayTag(period(f.pid).due)}`)}
@@ -2153,7 +2151,7 @@ function modalReview(g, pid){
   return `<form class="modal stack-sm" data-act="submit-review" data-gid="${g.id}">
     <div class="row-between"><h2 class="h3">월별 조 후기 작성</h2>
       <button class="btn btn-ghost btn-sm" type="button" data-act="close" aria-label="닫기">${ic('x',16)}</button></div>
-    <p class="small">조당 월 1건 · 집필자 매월 로테이션 · ${REV_MIN}~${REV_MAX}자 · 요건 충족 0.8점</p>
+    <p class="small">조당 월 1건 · 집필자 매월 로테이션 · ${REV_MIN}~${REV_MAX}자 · 요건 충족 0.8점 · 카페 게시는 운영진 대행</p>
 
     <div class="row" style="gap:var(--sp-3);align-items:flex-end">
       ${groupPicker(g, 'review-group')}
@@ -2177,9 +2175,8 @@ function modalReview(g, pid){
             return `<option value="${esc(m.name)}">${esc(m.name)}${w.length?'  ('+w.join('·')+' 집필)':'  (미집필)'}</option>`;
           }).join('')}
         </select></label>
-      <label class="field" style="flex:2"><span>네이버카페 후기 URL</span>
-        <input class="input" name="url" type="url" data-live placeholder="https://cafe.naver.com/bdastudy/12345"></label>
     </div>
+    ${callout('info','link','후기는 <strong>LMS에만 제출</strong>하면 됩니다. 네이버카페 게시는 <strong>운영진이 대신 올립니다.</strong>')}
     <div class="rot">
       ${g.members.map(m=>{
         const w = wroteMonths(g, m.name);
@@ -2199,7 +2196,7 @@ function modalReview(g, pid){
       </label>`).join('')}
     </fieldset>
 
-    <div id="rjudge-slot">${reviewJudgePanel({g, pid, spec, answers:spec.map(()=>''), url:'', writer:''})}</div>
+    <div id="rjudge-slot">${reviewJudgePanel({g, pid, spec, answers:spec.map(()=>''), writer:''})}</div>
     <div class="row"><button class="btn btn-primary btn-lg" type="submit">등록</button>
       <button class="btn btn-secondary btn-lg" type="button" data-act="close">취소</button></div>
   </form>`;
@@ -2426,7 +2423,7 @@ document.addEventListener('submit', e=>{
     const name = v.writer || (g.members.find(m=>m.me)?.name || g.members[0].name);
     REVIEWS.unshift({id:'r'+(REVIEWS.length+1), gid:g.id, pid:v.pid, author:name,
       mask:name.slice(0,2)+'*', date:TODAY.toISOString().slice(0,10), likes:0, liked:false,
-      score:j.score, chars:j.total, url:v.url.trim(), queue:j.queue,
+      score:j.score, chars:j.total, queue:j.queue,
       text:v.answers.map((a,i)=>a?(v.spec[i].t+' — '+a):'').filter(Boolean).join('  ')});
     S.modal=null; render();
     toast(`후기를 등록했습니다 — M5 ${money(j.score)}점${j.queue.length?' · 검수 큐 '+j.queue.length+'건':''}`);
