@@ -315,6 +315,12 @@ tfoot td{font-weight:var(--fw-bold);background:var(--color-surface-soft);}
 .icon-btn:hover:not(:disabled){background:var(--color-surface-soft);color:var(--color-text-strong);}
 .icon-btn:disabled{color:var(--gray-300);cursor:not-allowed;}
 .btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;}
+.pickcard{text-align:left;font:inherit;cursor:pointer;border:1px solid var(--color-border);}
+.pickcard.is-on{border-color:var(--color-accent);box-shadow:0 0 0 1px var(--color-accent) inset;}
+.pickbox{margin-left:auto;width:20px;height:20px;border-radius:var(--r-sm);
+  border:1px solid var(--color-border-strong);display:inline-flex;align-items:center;
+  justify-content:center;color:var(--gray-0);flex:none;}
+.pickcard.is-on .pickbox{background:var(--color-accent);border-color:var(--color-accent);}
 .icon-btn.rot svg{transform:rotate(180deg);}
 .cal-table{width:100%;table-layout:fixed;border-collapse:collapse;}
 .cal-table th{text-align:center;padding:var(--sp-2) 0;font-size:var(--fs-caption);
@@ -736,12 +742,11 @@ const RECRUIT = {
   cohort:'13기', kind:'정규모집',
   opens:'2026-09-07', closes:'2026-09-11', formed:'2026-09-15', starts:'2026-09-17',
   items:[
-    {id:'r1', track:'review', mode:'대면',   classId:'c1', min:4, max:5, applied:12},
-    {id:'r2', track:'review', mode:'비대면', classId:'c2', min:4, max:5, applied:9},
-    {id:'r3', track:'review', mode:'비대면', classId:'c3', min:4, max:5, applied:7},
-    {id:'r4', track:'review', mode:'대면',   classId:'c4', min:4, max:5, applied:5},
-    {id:'r5', track:'contest',mode:'비대면', classId:null, min:3, max:5, applied:18},
-    {id:'r6', track:'contest',mode:'대면',   classId:null, min:3, max:5, applied:11}
+    {id:'r1', track:'review',  classId:'c1', min:4, max:5, applied:12},
+    {id:'r2', track:'review',  classId:'c2', min:4, max:5, applied:9},
+    {id:'r3', track:'review',  classId:'c3', min:4, max:5, applied:7},
+    {id:'r4', track:'review',  classId:'c4', min:4, max:5, applied:5},
+    {id:'r5', track:'contest', classId:null, min:3, max:5, applied:29}
   ]
 };
 const CAL_SPANS = PERIODS.map(p=>({from:p.start, to:p.end, k:'act', label:p.label+' 활동 기간'}))
@@ -766,7 +771,7 @@ const QNAS = [
 const S = {
   route:{v:'dashboard'},
   f:{ logs:{cls:'all', track:'all', mode:'all', q:''}, rev:{pid:'all', track:'all', cls:'all'},
-      apply:{track:'', mode:'', region:''} },
+      apply:{track:'', mode:'', region:'', picks:[]} },
   learningEmpty:false,
   cal:'2026-09',
   modal:null,
@@ -1167,9 +1172,10 @@ function viewApply(){
   const R = RECRUIT, st = recruitState();
   const f = S.f.apply, picked = !!(f.track && f.mode);
   const needRegion = f.mode==='대면' && !f.region;
+  const needPick = picked && f.picks.length===0;
   const mine = R.items.filter(x => isMyClass(x.classId));
   const hidden = R.items.length - mine.length;
-  const shown = mine.filter(x => (!f.track || x.track===f.track) && (!f.mode || x.mode===f.mode));
+  const shown = mine.filter(x => !f.track || x.track===f.track);
   const REGIONS = ['서울남부','서울북부','경기남부','경기북부','인천','대전','세종','충북','충남',
                    '부산','대구','울산','경북','경남','광주','전북','전남','강원','제주','기타'];
   const DAYS = ['월','화','수','목','금','토','일'];
@@ -1192,18 +1198,16 @@ function viewApply(){
     {t:'활동 시작', d:'오픈채팅방 안내 후 첫 모임과 활동 계획서 작성으로 시작합니다.', s:fmt(R.starts)}
   ];
   const label = r => r.classId ? CLS(r.classId) : '기수 공통 · 분반 무관';
-  const card = r => `<label class="card card-int" style="cursor:pointer">
-    <span class="row" style="gap:var(--sp-2)">${trackBadge(r.track)}${modeBadge(r.mode)}
-      <input type="checkbox" style="margin-left:auto;width:18px;height:18px" aria-label="${esc(label(r))} 신청">
-    </span>
-    <span class="h3" style="display:block;margin-top:var(--sp-3)">${esc(label(r))}</span>
-    <span class="small" style="display:block;margin-top:var(--sp-1)">팀 ${r.min}~${r.max}명 · 현재 신청 ${r.applied}명</span>
-    <span class="row" style="gap:var(--sp-1);margin-top:var(--sp-2)">
-      ${r.classId?'<span class="badge badge-muted badge-sm">수강 중</span>':''}
-      ${r.mode==='대면'?'<span class="badge badge-warning badge-sm">거주지역 기준 편성</span>'
-                      :'<span class="badge badge-muted badge-sm">요일·시간대 기준 편성</span>'}
-    </span>
-  </label>`;
+  const card = r => { const on = f.picks.indexOf(r.id) >= 0; return `
+    <button class="card card-int pickcard${on?' is-on':''}" type="button"
+      data-act="apply-item" data-id="${r.id}" aria-pressed="${on}">
+      <span class="row" style="gap:var(--sp-2)">${trackBadge(r.track)}
+        ${r.classId?'<span class="badge badge-muted badge-sm">수강 중</span>':'<span class="badge badge-muted badge-sm">분반 무관</span>'}
+        <span class="pickbox" aria-hidden="true">${on?ic('check',14):''}</span>
+      </span>
+      <span class="h3" style="display:block;margin-top:var(--sp-3);text-align:left">${esc(label(r))}</span>
+      <span class="small" style="display:block;margin-top:var(--sp-1);text-align:left">팀 ${r.min}~${r.max}명 · 현재 신청 ${r.applied}명</span>
+    </button>`; };
 
   return `<div class="page stack">
     <nav class="crumb"><a class="link" href="#/dashboard">정규반</a>${ic('chevron',14)}<a class="link" href="#/learning">조별활동 홈</a>${ic('chevron',14)}<span>신청</span></nav>
@@ -1288,13 +1292,17 @@ function viewApply(){
         : callout('info','help','참여 트랙과 활동 형태가 <strong>조 편성의 기준</strong>입니다. 고르시면 신청 가능한 활동과 이후 문항이 그에 맞게 바뀝니다.')}
 
       <div class="field">
-        <span>신청할 조별활동 ${picked?`<span class="badge badge-muted badge-sm">${shown.length}개</span>`:''}</span>
-        <span class="caption">${esc(ME.name)} 님이 수강 중인 분반의 활동만 표시됩니다 — ${myClasses().map(c=>esc(c.name)).join(' · ')}.
-          복습 트랙은 같은 분반 수강생끼리 편성되므로 수강하지 않는 분반은 신청할 수 없습니다${hidden?` (${hidden}개 숨김)`:''}.
-          공모전 트랙은 분반과 무관합니다. 수강 분반별로 복수 신청할 수 있습니다.</span>
+        <span>신청할 조별활동
+          <span class="badge ${f.picks.length?'badge-brand':'badge-danger'} badge-sm">${f.picks.length?f.picks.length+'개 선택':'필수'}</span>
+          ${shown.length?`<span class="badge badge-muted badge-sm">선택 가능 ${shown.length}개</span>`:''}</span>
+        <span class="caption">${esc(ME.name)} 님이 <strong>수강 중인 분반</strong>의 활동만 표시됩니다 — ${myClasses().map(c=>esc(c.name)).join(' · ')}${hidden?` (미수강 ${hidden}개 숨김)`:''}.
+          <strong>수강 중인 분반은 모두 신청할 수 있고 복수 선택이 가능합니다.</strong>
+          대면·비대면은 신청서에 적어 주신 희망 형태를 보고 <strong>조 편성 단계에서 나눕니다</strong> — 활동 목록은 형태와 무관하게 모두 표시됩니다.</span>
         ${shown.length
           ? `<div class="grid3" style="margin-top:var(--sp-2)">${shown.map(card).join('')}</div>`
-          : `<div class="empty">${ic('search',32)}<p>${picked?'이 조건으로 모집 중인 활동이 없어요.<br>다른 조합을 선택해 보세요.':'트랙과 활동 형태를 고르면 신청 가능한 활동이 표시됩니다.'}</p></div>`}
+          : `<div class="empty">${ic('search',32)}<p>${f.track==='review'
+              ? '수강 중인 분반에 개설된 조별활동이 없어요.'
+              : '참여 트랙을 고르면 신청 가능한 활동이 표시됩니다.'}</p></div>`}
       </div>
 
       <div class="formgrid">
@@ -1330,8 +1338,8 @@ function viewApply(){
         <p class="small">제출 후 조 편성 발표(${fmt(R.formed)}) 전까지 수정할 수 있습니다.</p>
         <div class="row">
           <button class="btn btn-secondary" type="button" data-act="toast" data-msg="레이아웃 단계 — 임시저장은 아직 연결하지 않았습니다">임시저장</button>
-          <button class="btn btn-primary btn-lg" type="button" ${(!picked||needRegion)?'disabled aria-disabled="true"':''}
-            data-act="toast" data-msg="${!picked?'참여 트랙과 활동 형태를 먼저 골라 주세요':(needRegion?'거주지역을 먼저 선택해 주세요':'레이아웃 단계 — 제출 동작은 아직 연결하지 않았습니다')}">신청정보 제출</button>
+          <button class="btn btn-primary btn-lg" type="button" ${(!picked||needPick||needRegion)?'disabled aria-disabled="true"':''}
+            data-act="toast" data-msg="${!picked?'참여 트랙과 활동 형태를 먼저 골라 주세요':(needPick?'신청할 조별활동을 선택해 주세요':(needRegion?'거주지역을 먼저 선택해 주세요':'레이아웃 단계 — 제출 동작은 아직 연결하지 않았습니다'))}">신청서 제출${f.picks.length?` (${f.picks.length}개)`:''}</button>
         </div>
       </div>
     </section>
@@ -2647,7 +2655,11 @@ document.addEventListener('click', e=>{
   if(act==='toast'){ toast(t.dataset.msg); }
   else if(act==='scroll'){ const el = document.getElementById(t.dataset.to);
     if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
-  else if(act==='chip'){ S.f[t.dataset.scope][t.dataset.key] = t.dataset.val; render(); }
+  else if(act==='chip'){ S.f[t.dataset.scope][t.dataset.key] = t.dataset.val;
+    if(t.dataset.scope==='apply' && t.dataset.key==='track') S.f.apply.picks = [];
+    render(); }
+  else if(act==='apply-item'){ const p = S.f.apply.picks, i = p.indexOf(t.dataset.id);
+    if(i<0) p.push(t.dataset.id); else p.splice(i,1); render(); }
   else if(act==='like'){ const r = REVIEWS.find(x=>x.id===t.dataset.id);
     r.liked = !r.liked; r.likes += r.liked?1:-1; render(); }
   else if(act==='switch-cycle'){
