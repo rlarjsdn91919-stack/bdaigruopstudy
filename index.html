@@ -315,6 +315,11 @@ tfoot td{font-weight:var(--fw-bold);background:var(--color-surface-soft);}
 .icon-btn:hover:not(:disabled){background:var(--color-surface-soft);color:var(--color-text-strong);}
 .icon-btn:disabled{color:var(--gray-300);cursor:not-allowed;}
 .btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;}
+.idgrid{display:grid;gap:var(--sp-3);margin-top:var(--sp-3);
+  grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));}
+.idgrid .full{grid-column:1/-1;}
+.idgrid .caption{display:block;}
+.idgrid .label{margin-top:2px;}
 .pickcard{text-align:left;font:inherit;cursor:pointer;border:1px solid var(--color-border);}
 .pickcard.is-on{border-color:var(--color-accent);box-shadow:0 0 0 1px var(--color-accent) inset;}
 .pickbox{margin-left:auto;width:20px;height:20px;border-radius:var(--r-sm);
@@ -1280,6 +1285,24 @@ function viewApply(){
         <span class="badge badge-brand badge-sm">${R.cohort} · ${R.kind}</span>
       </div>
 
+      <div class="soft">
+        <div class="row-between">
+          <p class="label">신청자 정보</p>
+          <span class="badge badge-muted badge-sm">${ic('check',12)} 계정에서 자동 확인</span>
+        </div>
+        <div class="idgrid">
+          <div><span class="caption">이름</span><p class="label">${esc(ME.name)}</p></div>
+          <div><span class="caption">기수</span><p class="label">${ME.cohort}</p></div>
+          <div><span class="caption">학과</span><p class="label">${esc(ME.dept)}</p></div>
+          <div><span class="caption">편성 조회 식별자</span><p class="label num">${esc(ME.name)}_${ME.tail}</p></div>
+          <div class="full"><span class="caption">수강 중인 분반</span>
+            <p class="label">${myClasses().map(c=>esc(c.name)).join(' · ')}</p></div>
+        </div>
+        <p class="caption" style="margin-top:var(--sp-3)">
+          이름 · 연락처 · 이메일 · 수강 분반은 <strong>LMS 계정에서 그대로 가져오므로 다시 입력하지 않습니다.</strong>
+          잘못된 정보가 있으면 마이페이지에서 수정해 주세요. 아래 항목만 <strong>조 편성에 필요한 추가 정보</strong>입니다.</p>
+      </div>
+
       <div class="formgrid">
         ${chipset('apply','track','참여 트랙',[{v:'review',t:'분반 복습'},{v:'contest',t:'공모전'}], f.track)}
         ${chipset('apply','mode','활동 형태',[{v:'대면',t:'대면'},{v:'비대면',t:'비대면'}], f.mode)}
@@ -1333,6 +1356,8 @@ function viewApply(){
           <textarea class="textarea" rows="3" placeholder="운영진이 편성 참고용으로 확인합니다. 예: 평일 저녁만 가능"></textarea></label>
       </div>
 
+      ${callout('info','message',`조 편성 결과는 <strong>${esc(ME.name)}_${ME.tail}</strong> 식별자로 조회합니다.
+        공지 오픈채팅방 닉네임도 같은 형식(<strong>이름_전화번호 뒷 4자리</strong>)으로 맞춰 주세요.`)}
       ${needRegion ? callout('warn','help','<strong>거주지역을 선택해 주세요.</strong> 대면 활동은 거주지역이 편성 1순위라 이 값이 없으면 조를 배정할 수 없습니다.') : ''}
       <div class="submitbar">
         <p class="small">제출 후 조 편성 발표(${fmt(R.formed)}) 전까지 수정할 수 있습니다.</p>
