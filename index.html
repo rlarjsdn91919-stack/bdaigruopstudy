@@ -314,6 +314,7 @@ tfoot td{font-weight:var(--fw-bold);background:var(--color-surface-soft);}
   display:flex;align-items:center;justify-content:center;transition:background var(--dur) var(--ease);}
 .icon-btn:hover:not(:disabled){background:var(--color-surface-soft);color:var(--color-text-strong);}
 .icon-btn:disabled{color:var(--gray-300);cursor:not-allowed;}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed;}
 .icon-btn.rot svg{transform:rotate(180deg);}
 .cal-table{width:100%;table-layout:fixed;border-collapse:collapse;}
 .cal-table th{text-align:center;padding:var(--sp-2) 0;font-size:var(--fs-caption);
@@ -395,6 +396,53 @@ tfoot td{font-weight:var(--fw-bold);background:var(--color-surface-soft);}
   margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--color-border);}
 .epanel[hidden]{display:none;}
 .filelist{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-top:var(--sp-2);}
+
+/* 조별활동 모집 배너 — 메인(정규반 홈) */
+.recruit{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-6);flex-wrap:wrap;
+  background:var(--color-primary);color:var(--gray-0);border-radius:var(--r-xl);
+  padding:var(--sp-6);text-align:left;width:100%;border:1px solid var(--navy-900);
+  transition:background var(--dur) var(--ease);}
+.recruit:hover{background:var(--navy-900);}
+.recruit-l{display:flex;flex-direction:column;gap:var(--sp-2);min-width:min(100%,440px);}
+.recruit-t{font-size:var(--fs-h1);font-weight:var(--fw-x);line-height:var(--lh-tight);letter-spacing:-.02em;}
+.recruit-d{font-size:var(--fs-label);color:rgba(255,255,255,.78);}
+.recruit-meta{display:flex;gap:var(--sp-4);flex-wrap:wrap;font-size:var(--fs-small);
+  color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums;}
+.recruit-r{display:flex;align-items:center;gap:var(--sp-6);}
+.recruit-dday{text-align:right;line-height:1;}
+.recruit-dday b{display:block;font-size:36px;font-weight:var(--fw-x);letter-spacing:-.02em;}
+.recruit-dday span{display:block;margin-top:var(--sp-2);font-size:var(--fs-caption);color:rgba(255,255,255,.7);}
+.badge-on{background:rgba(255,255,255,.16);color:var(--gray-0);}
+.btn-invert{background:var(--gray-0);color:var(--color-primary);border-color:var(--gray-0);}
+.btn-invert:hover{background:var(--blue-50);}
+
+/* 신청 절차 스텝 */
+.flow{display:grid;gap:var(--sp-4);grid-template-columns:repeat(3,minmax(0,1fr));counter-reset:flow;}
+.flow > li{background:var(--color-surface-soft);border-radius:var(--r-lg);padding:var(--sp-4);
+  display:flex;flex-direction:column;gap:var(--sp-1);}
+.flow > li::before{counter-increment:flow;content:counter(flow);
+  width:24px;height:24px;border-radius:var(--r-pill);background:var(--color-primary);color:var(--gray-0);
+  display:grid;place-items:center;font-size:var(--fs-caption);font-weight:var(--fw-bold);margin-bottom:var(--sp-1);}
+
+/* 신청 랜딩 히어로 */
+.hero{background:var(--color-primary);color:var(--gray-0);border-radius:var(--r-xl);
+  padding:var(--sp-10) var(--sp-8);display:flex;flex-direction:column;gap:var(--sp-3);}
+.hero-t{font-size:clamp(30px,4vw,46px);font-weight:var(--fw-x);line-height:1.18;letter-spacing:-.03em;}
+.hero-d{max-width:60ch;font-size:var(--fs-lead);color:rgba(255,255,255,.8);line-height:var(--lh-body);}
+.hero-d strong{color:var(--gray-0);}
+.grid2{display:grid;gap:var(--sp-4);grid-template-columns:repeat(2,minmax(0,1fr));}
+.ticks{display:flex;flex-direction:column;gap:var(--sp-2);margin-top:var(--sp-1);}
+.ticks li{display:flex;gap:var(--sp-2);align-items:flex-start;font-size:var(--fs-small);color:var(--color-text);}
+.ticks svg{color:var(--color-accent);flex:none;margin-top:2px;}
+.daychips{height:40px;align-items:center;}
+@media (max-width:900px){.grid2{grid-template-columns:1fr;}.hero{padding:var(--sp-6);}}
+
+/* 신청 폼 그리드 */
+.formgrid{display:grid;gap:var(--sp-4);grid-template-columns:repeat(2,minmax(0,1fr));}
+.formgrid .full{grid-column:1/-1;}
+.submitbar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);flex-wrap:wrap;
+  border-top:1px solid var(--color-border);padding-top:var(--sp-4);margin-top:var(--sp-2);}
+@media (max-width:900px){.flow,.formgrid{grid-template-columns:1fr;}}
 </style>
 <a class="skip" href="#main">본문 바로가기</a>
 <header class="header">
@@ -448,7 +496,7 @@ const ic = (n,s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 20 20" fill="
    데이터 — 13기(2026-09 ~ 2027-02)
    출처: LMS 시스템 구조 분석 · 채점 자동화 요청 사양 · 13기 실행 계획
    ───────────────────────────────────────────── */
-const TODAY = new Date('2026-09-25T09:00:00+09:00');
+const TODAY = new Date('2026-09-01T09:00:00+09:00');
 
 const CLASSES = [
   {id:'c1', name:'13기 데이터 분석 입문반(ML)', weeks:16, cat:'AI'},
@@ -459,6 +507,12 @@ const CLASSES = [
   {id:'c6', name:'13기 수리통계학 기초 (1)', weeks:10, cat:'데이터 사이언스'},
   {id:'c7', name:'13기 n8n을 활용한 데이터 워크플로우 구축', weeks:10, cat:'AI'}
 ];
+/* 로그인한 학회원 — 개인화의 기준. 수강 분반은 정규반 수강신청에서 옴 */
+const ME = { name:'김다현', tail:'5678', dept:'데이터사이언스학과', cohort:'13기',
+             classes:['c1','c2','c4'] };
+const myClasses = () => CLASSES.filter(c => ME.classes.indexOf(c.id) >= 0);
+const isMyClass = id => !id || ME.classes.indexOf(id) >= 0;
+
 const CLS = id => (CLASSES.find(c=>c.id===id)||{}).name || '분반 무관 (전 분반 통합)';
 
 /* 활동 기간(TeamActivityPeriod) — 13기 실행 계획 타임라인 */
@@ -677,6 +731,19 @@ const CAL = [
   {d:'2027-02-27', t:'2월 채점 · 최종 채점표 공지', k:'open', pid:'p2'},
   {d:'2027-02-28', t:'13기 조별활동 종료', k:'etc'}
 ];
+/* 조별활동 모집 — 신청 화면용 (레이아웃 우선, 카드 필드는 실제 서비스와 동일) */
+const RECRUIT = {
+  cohort:'13기', kind:'정규모집',
+  opens:'2026-09-07', closes:'2026-09-11', formed:'2026-09-15', starts:'2026-09-17',
+  items:[
+    {id:'r1', track:'review', mode:'대면',   classId:'c1', min:4, max:5, applied:12},
+    {id:'r2', track:'review', mode:'비대면', classId:'c2', min:4, max:5, applied:9},
+    {id:'r3', track:'review', mode:'비대면', classId:'c3', min:4, max:5, applied:7},
+    {id:'r4', track:'review', mode:'대면',   classId:'c4', min:4, max:5, applied:5},
+    {id:'r5', track:'contest',mode:'비대면', classId:null, min:3, max:5, applied:18},
+    {id:'r6', track:'contest',mode:'대면',   classId:null, min:3, max:5, applied:11}
+  ]
+};
 const CAL_SPANS = PERIODS.map(p=>({from:p.start, to:p.end, k:'act', label:p.label+' 활동 기간'}))
   .concat(PERIODS.map(p=>({from:p.gstart, to:p.gend, k:'grade', label:p.label+' 채점 기간'})))
   .concat([{from:'2026-10-12', to:'2026-10-30', k:'recruit', label:'추가모집 기간'}]);
@@ -698,7 +765,8 @@ const QNAS = [
    ───────────────────────────────────────────── */
 const S = {
   route:{v:'dashboard'},
-  f:{ logs:{cls:'all', track:'all', mode:'all', q:''}, rev:{pid:'all', track:'all', cls:'all'} },
+  f:{ logs:{cls:'all', track:'all', mode:'all', q:''}, rev:{pid:'all', track:'all', cls:'all'},
+      apply:{track:'', mode:'', region:''} },
   learningEmpty:false,
   cal:'2026-09',
   modal:null,
@@ -865,7 +933,7 @@ function viewDashboard(){
         <div class="row"><a class="btn btn-secondary btn-sm" href="#/community/notice">전체 공지</a>
           <button class="btn btn-secondary btn-sm" type="button" data-act="toast" data-msg="정규반 질문 게시판은 데모 범위 밖입니다">정규반 질문</button></div>
       </div>
-      <div class="grid5">${CLASSES.slice(0,5).map(c=>`<a class="card card-int" href="#/class/${c.id}">
+      <div class="grid5">${myClasses().map(c=>`<a class="card card-int" href="#/class/${c.id}">
         <div class="row-between"><span class="avatar">${esc(c.cat.slice(0,2))}</span><span class="badge badge-muted badge-sm">${c.cat}</span></div>
         <h3 class="label" style="margin-top:var(--sp-3);font-size:var(--fs-body)">${esc(c.name)} &lt;${c.weeks}주차&gt;</h3>
         <p class="caption num" style="margin-top:var(--sp-2)">총점 0 · 상점 0 · 벌점 0</p>
@@ -915,7 +983,7 @@ function viewClass(cid){
         </section>
         <section class="card card-lg stack-sm">
           <div class="sec-head"><h2 class="h3">이 분반의 조 (${gs.length}조)</h2>
-            <a class="link small" href="#/group/${(mine||gs[0]).id}/logs">활동일지 전체 보기</a></div>
+            ${(mine||gs[0]) ? `<a class="link small" href="#/group/${(mine||gs[0]).id}/logs">활동일지 전체 보기</a>` : ''}</div>
           <div class="table-wrap"><table>
             <thead><tr><th scope="col">조</th><th scope="col">트랙</th><th scope="col">형태</th><th scope="col">인원</th><th scope="col">조장</th><th scope="col" class="t-num">9월 점수</th></tr></thead>
             <tbody>${gs.map(g=>{const ms=monthlyScore(g.id,'p9');return `<tr>
@@ -1062,6 +1130,232 @@ function calendarBoard(){
   </section>`;
 }
 
+/* 조별활동 신청 CTA — 조별활동 홈 상단, 신청 랜딩페이지로 이동 */
+function recruitState(){
+  const R = RECRUIT;
+  if(dday(R.opens) > 0)  return {label:'모집 예정', tag:ddayTag(R.opens),  cap:'신청 시작까지', cta:'모집 안내 보기'};
+  if(dday(R.closes) >= 0) return {label:'모집 중',  tag:ddayTag(R.closes), cap:'신청 마감까지', cta:'신청하러 가기'};
+  return {label:'모집 마감', tag:'마감', cap:'신청 마감', cta:'모집 안내 보기'};
+}
+function recruitBanner(){
+  const R = RECRUIT, st = recruitState();
+  return `<a class="recruit" href="#/learning/apply">
+    <span class="recruit-l">
+      <span class="row" style="gap:var(--sp-2)">
+        <span class="badge badge-on badge-sm">${st.label}</span>
+        <span class="badge badge-on badge-sm">${R.cohort} · ${R.kind}</span>
+      </span>
+      <span class="recruit-t">조별활동 신청하기</span>
+      <span class="recruit-d">13기 정규모집입니다. 신청정보를 제출하면 운영진이 조를 편성해 드립니다.</span>
+      <span class="recruit-meta">
+        <span>신청 ${fmt(R.opens)} ~ ${fmt(R.closes)}</span>
+        <span>조 편성 발표 ${fmt(R.formed)}</span>
+        <span>활동 시작 ${fmt(R.starts)}</span>
+      </span>
+    </span>
+    <span class="recruit-r">
+      <span class="recruit-dday"><b>${st.tag}</b><span>${st.cap}</span></span>
+      <span class="btn btn-invert btn-lg">${st.cta}${ic('chevron',18)}</span>
+    </span>
+  </a>`;
+}
+
+/* ─────────────────────────────────────────────
+   화면 3-1 — 정규반 > 조별활동 > 신청 (레이아웃)
+   ───────────────────────────────────────────── */
+function viewApply(){
+  const R = RECRUIT, st = recruitState();
+  const f = S.f.apply, picked = !!(f.track && f.mode);
+  const needRegion = f.mode==='대면' && !f.region;
+  const mine = R.items.filter(x => isMyClass(x.classId));
+  const hidden = R.items.length - mine.length;
+  const shown = mine.filter(x => (!f.track || x.track===f.track) && (!f.mode || x.mode===f.mode));
+  const REGIONS = ['서울남부','서울북부','경기남부','경기북부','인천','대전','세종','충북','충남',
+                   '부산','대구','울산','경북','경남','광주','전북','전남','강원','제주','기타'];
+  const DAYS = ['월','화','수','목','금','토','일'];
+
+  const tracks = [
+    {k:'review', t:'분반 복습 트랙', d:'수강 중인 분반의 수업 내용을 조원과 함께 복습합니다. 같은 분반 안에서 조가 편성됩니다.',
+     pts:['같은 분반 수강생끼리 편성','월 1회 이상 오프라인 또는 2회 온라인 모임','복습 자료를 조 단위로 축적']},
+    {k:'contest', t:'공모전 트랙', d:'분반과 무관하게 기수 전체에서 조를 만들어 공모전을 함께 준비합니다.',
+     pts:['분반 무관 · 기수 공통 편성','S1~S4 마일스톤 단위로 진행','참가·제출 데이터로 자동 판정']}
+  ];
+  const why = [
+    {ic:'users', t:'혼자보다 오래 간다', d:'조 단위로 마감이 걸려 있어 학기 끝까지 리듬이 유지됩니다.'},
+    {ic:'pencil', t:'기록이 남는다', d:'활동일지와 후기가 규칙 단위로 채점되어 성장 근거가 쌓입니다.'},
+    {ic:'star', t:'상위 10%는 보상', d:'트랙별 상위 10% 조는 상점 +5와 HR pass를 받습니다.'},
+    {ic:'grad', t:'수료에 반영', d:'월 평균 3.5점 이상이면 조별활동 수료로 인정됩니다.'}
+  ];
+  const steps = [
+    {t:'신청정보 제출', d:`트랙 · 활동 형태를 고르고 ${f.mode==='비대면'?'가능 요일·시간대':'거주지역 · 가능 요일'} · 조장 신청 여부를 입력합니다.`, s:`~ ${fmt(R.closes)}`},
+    {t:'조 편성', d:'운영진이 신청정보를 바탕으로 조를 편성하고 조장을 지정합니다.', s:fmt(R.formed)},
+    {t:'활동 시작', d:'오픈채팅방 안내 후 첫 모임과 활동 계획서 작성으로 시작합니다.', s:fmt(R.starts)}
+  ];
+  const label = r => r.classId ? CLS(r.classId) : '기수 공통 · 분반 무관';
+  const card = r => `<label class="card card-int" style="cursor:pointer">
+    <span class="row" style="gap:var(--sp-2)">${trackBadge(r.track)}${modeBadge(r.mode)}
+      <input type="checkbox" style="margin-left:auto;width:18px;height:18px" aria-label="${esc(label(r))} 신청">
+    </span>
+    <span class="h3" style="display:block;margin-top:var(--sp-3)">${esc(label(r))}</span>
+    <span class="small" style="display:block;margin-top:var(--sp-1)">팀 ${r.min}~${r.max}명 · 현재 신청 ${r.applied}명</span>
+    <span class="row" style="gap:var(--sp-1);margin-top:var(--sp-2)">
+      ${r.classId?'<span class="badge badge-muted badge-sm">수강 중</span>':''}
+      ${r.mode==='대면'?'<span class="badge badge-warning badge-sm">거주지역 기준 편성</span>'
+                      :'<span class="badge badge-muted badge-sm">요일·시간대 기준 편성</span>'}
+    </span>
+  </label>`;
+
+  return `<div class="page stack">
+    <nav class="crumb"><a class="link" href="#/dashboard">정규반</a>${ic('chevron',14)}<a class="link" href="#/learning">조별활동 홈</a>${ic('chevron',14)}<span>신청</span></nav>
+
+    <section class="hero">
+      <div class="row" style="gap:var(--sp-2)">
+        <span class="badge badge-on badge-sm">${st.label}</span>
+        <span class="badge badge-on badge-sm">${R.cohort} · ${R.kind}</span>
+        <span class="badge badge-on badge-sm">${st.tag} · ${st.cap}</span>
+      </div>
+      <h1 class="hero-t">함께할 조원을<br>지금 찾고 있습니다</h1>
+      <p class="hero-d">분반 복습과 공모전 준비, 두 트랙으로 운영합니다.
+        신청정보를 제출하면 ${picked
+          ? (f.mode==='대면'
+             ? '<strong>거주지역이 가까운 조원끼리</strong>'
+             : '<strong>활동 가능한 요일·시간대가 맞는 조원끼리</strong>')
+          : '<strong>활동 형태에 맞는 기준으로</strong>'} 운영진이 조를 편성해 드립니다.</p>
+      <div class="row" style="gap:var(--sp-3);margin-top:var(--sp-2)">
+        <button class="btn btn-invert btn-lg" type="button" data-act="scroll" data-to="apply-form">신청정보 작성하기${ic('chevron',18)}</button>
+        <button class="btn btn-ghost btn-lg" type="button" style="color:var(--gray-0);border-color:rgba(255,255,255,.32)" data-act="scroll" data-to="recruit-list">모집 활동 보기</button>
+      </div>
+      <div class="recruit-meta" style="margin-top:var(--sp-4)">
+        <span>신청 ${fmt(R.opens)} ~ ${fmt(R.closes)}</span>
+        <span>조 편성 발표 ${fmt(R.formed)}</span>
+        <span>활동 시작 ${fmt(R.starts)}</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="stats">
+        ${statCard('book','모집 활동', R.items.length+'개', '분반 복습 4 · 공모전 2')}
+        ${statCard('users','조 규모', '3~5명', '활동별 최소·최대 인원 상이')}
+        ${statCard('clock','신청 마감', fmt(R.closes), st.tag+' · '+st.cap)}
+        ${statCard('calendar','활동 시작', fmt(R.starts), 'STEP 1 · Team부터 함께 시작')}
+      </div>
+    </section>
+
+    <section class="stack-sm">
+      <div class="sec-head"><div><h2 class="h2">트랙 선택</h2>
+        <p class="small" style="margin-top:var(--sp-1)">두 트랙은 편성 방식과 진행 단위가 다릅니다.</p></div></div>
+      <div class="grid2">${tracks.map(t=>`<div class="card card-lg stack-sm">
+        <div class="row" style="gap:var(--sp-2)">${trackBadge(t.k)}</div>
+        <h3 class="h3">${t.t}</h3>
+        <p class="small">${t.d}</p>
+        <ul class="ticks">${t.pts.map(x=>`<li>${ic('check',16)}<span>${x}</span></li>`).join('')}</ul>
+      </div>`).join('')}</div>
+    </section>
+
+    <section class="card card-lg stack-sm" id="pick">
+      <div class="sec-head">
+        <div><h2 class="h2">STEP 1 · 무엇을 어떻게 하실지 고르세요</h2>
+          <p class="small" style="margin-top:var(--sp-1)">이 두 가지가 <strong>조 편성의 기준</strong>입니다. 고르시면 아래 모집 목록과 신청 문항이 그에 맞게 바뀝니다.</p></div>
+      </div>
+      <div class="formgrid">
+        ${chipset('apply','track','참여 트랙',[{v:'review',t:'분반 복습'},{v:'contest',t:'공모전'}], f.track)}
+        ${chipset('apply','mode','활동 형태',[{v:'대면',t:'대면'},{v:'비대면',t:'비대면'}], f.mode)}
+      </div>
+      ${picked
+        ? callout('ok','check',`<strong>${trackName(f.track)} · ${f.mode}</strong>으로 신청합니다. `
+            + (f.mode==='대면'
+               ? '대면은 <strong>거주지역 → 가능 요일</strong> 순으로 편성합니다.'
+               : '비대면은 <strong>가능 요일·시간대</strong>로 편성합니다. 거주지역은 묻지 않습니다.'))
+        : callout('warn','help','두 가지를 모두 고르셔야 신청 문항이 열립니다. 트랙에 따라 편성 단위가 다르고, 활동 형태에 따라 <strong>물어보는 항목 자체가 달라집니다.</strong>')}
+    </section>
+
+    <section class="card card-lg stack-sm">
+      <div class="sec-head"><h2 class="h2">이런 점이 좋습니다</h2></div>
+      <div class="grid2">${why.map(f=>`<div class="soft" style="display:flex;gap:var(--sp-3);align-items:flex-start">
+        <span style="color:var(--color-accent)">${ic(f.ic,20)}</span>
+        <div><p class="label">${f.t}</p><p class="small" style="margin-top:var(--sp-1)">${f.d}</p></div></div>`).join('')}</div>
+    </section>
+
+    <section class="card card-lg stack-sm">
+      <div class="sec-head"><h2 class="h2">신청 절차</h2></div>
+      <ol class="flow">${steps.map(x=>`<li>
+        <p class="label">${x.t}</p>
+        <p class="small">${x.d}</p>
+        <p class="caption num" style="margin-top:auto;padding-top:var(--sp-2)">${x.s}</p>
+      </li>`).join('')}</ol>
+      ${callout('info','help','신청정보는 <strong>조 편성 발표 전까지만</strong> 수정할 수 있습니다. 편성 이후에는 조 변경·재편성 요청을 받지 않습니다.')}
+    </section>
+
+    <section class="stack-sm" id="recruit-list">
+      <div class="sec-head">
+        <div><h2 class="h2">STEP 2 · 모집 중인 조별활동</h2>
+          <p class="small" style="margin-top:var(--sp-1)">${picked
+            ? `${trackName(f.track)} · ${f.mode} 조건에 맞는 ${shown.length}개입니다. 수강 중인 분반별로 신청할 수 있습니다.`
+            : '위에서 트랙과 활동 형태를 고르면 조건에 맞는 활동만 보여 드립니다.'}</p></div>
+        ${picked?`<span class="badge badge-brand badge-sm">${trackName(f.track)} · ${f.mode}</span>`:''}
+      </div>
+      ${callout('info','users',`<strong>${esc(ME.name)}</strong> 님이 <strong>수강 중인 분반</strong>의 조별활동만 표시됩니다 —
+        ${myClasses().map(c=>esc(c.name)).join(' · ')}.
+        분반 복습 트랙은 <strong>같은 분반 수강생끼리</strong> 편성되므로 수강하지 않는 분반은 신청할 수 없습니다${hidden?` (${hidden}개 숨김)`:''}.
+        공모전 트랙은 분반과 무관하게 전원 신청할 수 있습니다.`)}
+      ${shown.length
+        ? `<div class="grid3">${shown.map(card).join('')}</div>`
+        : `<div class="empty">${ic('search',32)}<p>이 조건으로 모집 중인 활동이 없어요.<br>다른 조합을 선택해 보세요.</p></div>`}
+    </section>
+
+    <section class="card card-lg stack-sm" id="apply-form">
+      <div class="sec-head">
+        <div><h2 class="h2">STEP 3 · 신청정보</h2>
+          <p class="small" style="margin-top:var(--sp-1)">${picked
+            ? (f.mode==='대면'
+               ? '대면 신청이므로 거주지역을 먼저 봅니다.'
+               : '비대면 신청이므로 거주지역은 묻지 않고 요일·시간대로 편성합니다.')
+            : '트랙과 활동 형태를 먼저 골라 주세요.'}</p></div>
+      </div>
+      ${!picked ? `<div class="empty">${ic('help',32)}<p>STEP 1에서 트랙과 활동 형태를 고르면<br>신청 문항이 열립니다.</p>
+        <button class="btn btn-secondary" type="button" data-act="scroll" data-to="pick">STEP 1로 이동</button></div>` : `
+      <div class="formgrid">
+        ${f.mode==='대면' ? `
+        <label class="field"><span>거주지역
+          <span class="badge badge-danger badge-sm">필수 · 편성 1순위</span></span>
+          <select class="select" data-act="sel" data-scope="apply" data-key="region">
+            ${[''].concat(REGIONS).map(r=>`<option value="${r}" ${r===f.region?'selected':''}>${r||'선택하세요'}</option>`).join('')}
+          </select>
+          <span class="caption">${f.region
+            ? `<strong>${esc(f.region)}</strong> 기준으로 가까운 조원끼리 편성합니다.`
+            : '대면 활동은 거주지역이 맞아야 모임이 성립합니다. 선택해야 제출할 수 있습니다.'}</span></label>` : ''}
+        <div class="field"><span>가능 요일 ${f.mode==='비대면'?'<span class="badge badge-danger badge-sm">편성 1순위</span>':''}</span>
+          <div class="chipset daychips" role="group" aria-label="가능 요일">
+            ${DAYS.map(d=>`<button class="chip" type="button" aria-pressed="false" data-act="toast" data-msg="레이아웃 단계 — 선택 동작은 아직 연결하지 않았습니다">${d}</button>`).join('')}
+          </div></div>
+        ${f.mode==='비대면' ? `
+        <label class="field"><span>가능 시간대</span>
+          <select class="select">
+            <option>선택하세요</option><option>평일 오전</option><option>평일 오후</option>
+            <option>평일 저녁</option><option>주말 낮</option><option>주말 저녁</option>
+          </select>
+          <span class="caption">비대면은 요일과 시간대가 맞아야 모임이 성립합니다.</span></label>` : ''}
+        <label class="field"><span>희망 역할</span>
+          <select class="select"><option>상관없음</option><option>조장 희망</option><option>조원 희망</option></select>
+          <span class="caption">조장 희망은 편성에서 마지막으로 고려합니다.</span></label>
+        <label class="field full"><span>추가 정보 (선택)</span>
+          <textarea class="textarea" rows="3" placeholder="운영진이 편성 참고용으로 확인합니다. 예: 평일 저녁만 가능"></textarea></label>
+      </div>
+      ${needRegion ? callout('warn','help','<strong>거주지역을 선택해 주세요.</strong> 대면 활동은 거주지역이 편성 1순위라 이 값이 없으면 조를 배정할 수 없습니다.') : ''}
+      <div class="submitbar">
+        <p class="small">제출 후 조 편성 발표(${fmt(R.formed)}) 전까지 수정할 수 있습니다.</p>
+        <div class="row">
+          <button class="btn btn-secondary" type="button" data-act="toast" data-msg="레이아웃 단계 — 임시저장은 아직 연결하지 않았습니다">임시저장</button>
+          <button class="btn btn-primary btn-lg" type="button" ${needRegion?'disabled aria-disabled="true"':''}
+            data-act="toast" data-msg="${needRegion?'거주지역을 먼저 선택해 주세요':'레이아웃 단계 — 제출 동작은 아직 연결하지 않았습니다'}">신청정보 제출</button>
+        </div>
+      </div>`}
+    </section>
+
+    ${callout('warn','message','궁금한 점은 <strong>조별활동 Q&amp;A</strong> 또는 운영진 1:1 오픈채팅으로 문의해 주세요.')}
+  </div>`;
+}
+
 /* ─────────────────────────────────────────────
    화면 3 — 정규반 > 조별활동 홈
    ───────────────────────────────────────────── */
@@ -1075,6 +1369,9 @@ function viewLearning(){
   ];
   return `<div class="page stack">
     <nav class="crumb"><a class="link" href="#/dashboard">정규반</a>${ic('chevron',14)}<span>조별활동 홈</span></nav>
+
+    ${recruitBanner()}
+
     <section class="card card-lg stack-sm">
       <div class="row" style="gap:var(--sp-2)"><span class="badge badge-brand">BDAI 13기</span><h1 class="h2">조별활동</h1></div>
       <p class="prose" style="font-size:var(--fs-label)">정규반 수업을 기반으로 팀원들과 함께 학습하고 성장하는 공간입니다.
@@ -2255,7 +2552,7 @@ function subnav(v){
       {t:'강사소개'}, {t:'모집 신청'}
     ];
     const r = parse();
-    const sub = [{id:'home',t:'조별활동 홈',ic:'users'},{id:'logs',t:'활동일지',ic:'book'},{id:'reviews',t:'후기',ic:'message'},{id:'notice',t:'공지',ic:'mega'},{id:'grievance',t:'신문고',ic:'flag'}];
+    const sub = [{id:'home',t:'조별활동 홈',ic:'users'},{id:'apply',t:'신청',ic:'pencil'},{id:'logs',t:'활동일지',ic:'book'},{id:'reviews',t:'후기',ic:'message'},{id:'notice',t:'공지',ic:'mega'},{id:'grievance',t:'신문고',ic:'flag'}];
     const cur = v==='learning' ? (r.a||'home') : (v==='reviews' ? 'reviews' : '');
     const isOn = x => x.href==='#/learning' ? onTeam : (x.href==='#/dashboard' ? !onTeam : false);
     return `<div class="subnav"><nav class="subnav-in" aria-label="정규반 메뉴">
@@ -2284,7 +2581,8 @@ function render(){
   const main = document.getElementById('main');
   main.innerHTML =
     r.v==='class' ? viewClass(r.a) :
-    r.v==='learning' ? (['logs','reviews','notice','grievance'].includes(r.a) ? viewLearningSub(r.a) : viewLearning()) :
+    r.v==='learning' ? (r.a==='apply' ? viewApply()
+                        : ['logs','reviews','notice','grievance'].includes(r.a) ? viewLearningSub(r.a) : viewLearning()) :
     r.v==='reviews' ? viewReviews() :
     r.v==='group' ? viewGroup(r.a, r.b||'info') :
     r.v==='community' ? (r.a==='qna' ? viewQna() : viewNoticeBoard()) :
@@ -2363,6 +2661,8 @@ document.addEventListener('click', e=>{
   const t = e.target.closest('[data-act]'); if(!t) return;
   const act = t.dataset.act;
   if(act==='toast'){ toast(t.dataset.msg); }
+  else if(act==='scroll'){ const el = document.getElementById(t.dataset.to);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
   else if(act==='chip'){ S.f[t.dataset.scope][t.dataset.key] = t.dataset.val; render(); }
   else if(act==='like'){ const r = REVIEWS.find(x=>x.id===t.dataset.id);
     r.liked = !r.liked; r.likes += r.liked?1:-1; render(); }
