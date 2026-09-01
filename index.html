@@ -781,7 +781,8 @@ const S = {
   cal:'2026-09',
   modal:null,
   grievances:[{id:'gr1', title:'조원 2명이 3주째 응답이 없습니다', date:'2026-09-22', state:'처리 중', reply:'조장님 연락처로 개별 안내드렸습니다. 다음 주까지 무응답 시 조 병합을 검토합니다.'}],
-  openNotice:null
+  openNotice:null,
+  edit:null
 };
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const d = s => new Date(s+'T23:59:59+09:00');
@@ -1295,8 +1296,35 @@ function viewApply(){
       <div class="soft">
         <div class="row-between">
           <p class="label">신청자 정보</p>
-          <span class="badge badge-muted badge-sm">${ic('check',12)} 계정에서 자동 확인</span>
+          ${S.edit
+            ? `<span class="row" style="gap:var(--sp-2)">
+                 <button class="btn btn-secondary btn-sm" type="button" data-act="edit-cancel">취소</button>
+                 <button class="btn btn-primary btn-sm" type="button" data-act="edit-save">저장</button>
+               </span>`
+            : `<span class="row" style="gap:var(--sp-2)">
+                 <span class="badge badge-muted badge-sm">${ic('check',12)} 계정에서 자동 확인</span>
+                 <button class="btn btn-secondary btn-sm" type="button" data-act="edit-start">${ic('pencil',14)}수정</button>
+               </span>`}
         </div>
+        ${S.edit ? `
+        <div class="idgrid">
+          <label class="field"><span class="caption">이름</span>
+            <input class="input" value="${esc(S.edit.name)}" data-act="edit-field" data-key="name"></label>
+          <label class="field"><span class="caption">전화번호 뒷 4자리</span>
+            <input class="input num" value="${esc(S.edit.tail)}" maxlength="4" inputmode="numeric"
+              data-act="edit-field" data-key="tail"></label>
+          <label class="field"><span class="caption">학과</span>
+            <input class="input" value="${esc(S.edit.dept)}" data-act="edit-field" data-key="dept"></label>
+          <div class="field"><span class="caption">기수</span>
+            <p class="label">${ME.cohort} <span class="badge badge-muted badge-sm">변경 불가</span></p></div>
+          <div class="full"><span class="caption">수강 중인 분반</span>
+            <p class="label">${myClasses().map(c=>esc(c.name)).join(' · ')}
+              <span class="badge badge-muted badge-sm">수강신청에서 관리</span></p></div>
+        </div>
+        <p class="caption" style="margin-top:var(--sp-3)">
+          <strong>전화번호 뒷 4자리는 편성 조회 식별자에 그대로 쓰입니다.</strong>
+          저장하면 식별자가 함께 바뀌므로, 오픈채팅방 닉네임도 같이 맞춰 주세요.</p>
+        ` : `
         <div class="idgrid">
           <div><span class="caption">이름</span><p class="label">${esc(ME.name)}</p></div>
           <div><span class="caption">기수</span><p class="label">${ME.cohort}</p></div>
@@ -1306,8 +1334,10 @@ function viewApply(){
             <p class="label">${myClasses().map(c=>esc(c.name)).join(' · ')}</p></div>
         </div>
         <p class="caption" style="margin-top:var(--sp-3)">
-          이름 · 연락처 · 이메일 · 수강 분반은 <strong>LMS 계정에서 그대로 가져오므로 다시 입력하지 않습니다.</strong>
-          잘못된 정보가 있으면 마이페이지에서 수정해 주세요. 아래 항목만 <strong>조 편성에 필요한 추가 정보</strong>입니다.</p>
+          <strong>LMS 계정에서 가져온 정보라 신청서에서 다시 입력하지 않습니다.</strong>
+          이름 · 전화번호 뒷 4자리 · 학과가 다르면 <strong>수정</strong>을 눌러 바로 고칠 수 있습니다.
+          기수와 수강 분반은 수강신청 정보라 여기서 바꿀 수 없습니다.</p>
+        `}
       </div>
 
       <div class="formgrid">
@@ -2612,6 +2642,7 @@ function subnav(v){
 }
 function render(){
   const r = parse(); S.route = r;
+  if(S.edit && !(r.v==='learning' && r.a==='apply')) S.edit = null;
   document.getElementById('gnb').innerHTML = GNB.map(g=>g.href
     ? `<a class="nav-link" href="${g.href}" ${g.match.includes(r.v)?'aria-current="page"':''}>${g.t}</a>`
     : `<button class="nav-link" type="button" data-act="toast" data-msg="이 데모는 조별활동 관련 화면만 구현했습니다">${g.t}</button>`).join('');
@@ -2706,6 +2737,20 @@ document.addEventListener('click', e=>{
     render(); }
   else if(act==='apply-item'){ const p = S.f.apply.picks, i = p.indexOf(t.dataset.id);
     if(i<0) p.push(t.dataset.id); else p.splice(i,1); render(); }
+  else if(act==='edit-start'){ S.edit = {name:ME.name, tail:ME.tail, dept:ME.dept}; render(); }
+  else if(act==='edit-cancel'){ S.edit = null; render(); }
+  else if(act==='edit-save'){
+    const e = S.edit;
+    if(!e.name.trim()){ toast('이름을 입력해 주세요'); return; }
+    if(!/^\d{4}$/.test(e.tail)){ toast('전화번호 뒷 4자리를 숫자 4자리로 입력해 주세요'); return; }
+    const changed = e.name.trim()!==ME.name || e.tail!==ME.tail || e.dept.trim()!==ME.dept;
+    ME.name = e.name.trim(); ME.tail = e.tail; ME.dept = e.dept.trim();
+    /* 조원 명부의 본인 레코드도 함께 갱신 — 일지 작성자·조장 표시가 어긋나지 않게 */
+    GROUPS.forEach(g => g.members.forEach(m => {
+      if(m.me){ m.name = ME.name; m.tail = ME.tail; m.dept = ME.dept; } }));
+    S.edit = null; render();
+    toast(changed ? `기본정보를 수정했습니다 — 편성 조회 식별자 ${ME.name}_${ME.tail}` : '변경된 내용이 없습니다');
+  }
   else if(act==='apply-domain'){
     const v = t.dataset.val; let d = S.f.apply.domains; const i = d.indexOf(v);
     if(i>=0){ d.splice(i,1); }
@@ -2737,6 +2782,7 @@ document.addEventListener('input', e=>{
   const t = e.target;
   if(t.dataset.act==='q'){ S.f[t.dataset.scope].q = t.value; const pos=t.selectionStart; render();
     const nx = document.querySelector('[data-act=q]'); if(nx){ nx.focus(); nx.setSelectionRange(pos,pos); } }
+  else if(t.dataset.act==='edit-field'){ if(S.edit) S.edit[t.dataset.key] = t.value; }
   else if(t.hasAttribute('data-live')){ refreshJudge(t.closest('form')); }
 });
 document.addEventListener('change', e=>{
