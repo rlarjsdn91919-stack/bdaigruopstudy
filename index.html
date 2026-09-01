@@ -1063,7 +1063,7 @@ function calendarBoard(){
 }
 
 /* ─────────────────────────────────────────────
-   화면 3 — Learning > 조별활동
+   화면 3 — 정규반 > 조별활동 홈
    ───────────────────────────────────────────── */
 function viewLearning(){
   const my = S.learningEmpty ? [] : MYGROUPS();
@@ -1074,6 +1074,7 @@ function viewLearning(){
     {ic:'star', t:'우수 활동 보상', d:'트랙별 상위 10% 조는 상점 +5와 HR pass를 받아요.'}
   ];
   return `<div class="page stack">
+    <nav class="crumb"><a class="link" href="#/dashboard">정규반</a>${ic('chevron',14)}<span>조별활동 홈</span></nav>
     <section class="card card-lg stack-sm">
       <div class="row" style="gap:var(--sp-2)"><span class="badge badge-brand">BDAI 13기</span><h1 class="h2">조별활동</h1></div>
       <p class="prose" style="font-size:var(--fs-label)">정규반 수업을 기반으로 팀원들과 함께 학습하고 성장하는 공간입니다.
@@ -1137,7 +1138,7 @@ function viewReviews(){
   const list = filteredReviews();
   const avg = list.length ? (list.reduce((a,r)=>a+r.rating,0)/list.length).toFixed(2) : '—';
   return `<div class="page stack">
-    <nav class="crumb"><a class="link" href="#/learning">Learning</a>${ic('chevron',14)}<a class="link" href="#/learning">조별활동</a>${ic('chevron',14)}<span>후기</span></nav>
+    <nav class="crumb"><a class="link" href="#/dashboard">정규반</a>${ic('chevron',14)}<a class="link" href="#/learning">조별활동 홈</a>${ic('chevron',14)}<span>후기</span></nav>
     <div class="sec-head">
       <div><h1 class="display">조별활동 후기</h1>
         <p class="small" style="margin-top:var(--sp-2)">후기 참여율은 13기 보조 KPI입니다 — 목표 생존조의 30% 이상.</p></div>
@@ -1153,7 +1154,7 @@ function viewReviews(){
   </div>`;
 }
 
-/* Learning > 조별활동 > 하위 메뉴 (활동일지 · 후기 · 신문고) */
+/* 정규반 > 조별활동 > 하위 메뉴 (활동일지 · 후기 · 공지 · 신문고) */
 function viewLearningSub(kind){
   const g = MYGROUPS()[0];
   const head = {
@@ -1165,7 +1166,7 @@ function viewLearningSub(kind){
   const panel = kind==='logs' ? tabLogs(g,1) : kind==='reviews' ? tabReviews(g,1)
     : kind==='notice' ? tabNotice(g,1) : tabGrievance(g,1);
   return `<div class="page stack">
-    <nav class="crumb"><span>Learning</span>${ic('chevron',14)}<a class="link" href="#/learning">조별활동</a>${ic('chevron',14)}<span>${head.t}</span></nav>
+    <nav class="crumb"><a class="link" href="#/dashboard">정규반</a>${ic('chevron',14)}<a class="link" href="#/learning">조별활동 홈</a>${ic('chevron',14)}<span>${head.t}</span></nav>
     <div><h1 class="display">${head.t}</h1><p class="small" style="margin-top:var(--sp-2)">${head.d}</p></div>
     ${panel}
   </div>`;
@@ -1265,7 +1266,7 @@ function viewGroup(gid, tab){
   }[tab] || tabInfo;
 
   return `<div class="page stack">
-    <nav class="crumb"><a class="link" href="#/learning">조별활동</a>${ic('chevron',14)}<span>${trackName(g.track)}</span>${ic('chevron',14)}<span>${esc(g.name)}</span></nav>
+    <nav class="crumb"><a class="link" href="#/dashboard">정규반</a>${ic('chevron',14)}<a class="link" href="#/learning">조별활동 홈</a>${ic('chevron',14)}<span>${trackName(g.track)}</span>${ic('chevron',14)}<span>${esc(g.name)}</span></nav>
     <div class="stack-sm">
       <div class="row" style="gap:var(--sp-2)">
         <h1 class="display">${esc(g.name)}</h1>${trackBadge(g.track)}${modeBadge(g.mode)}
@@ -2231,9 +2232,9 @@ function modalSchedule(){
    라우터 · 렌더 · 이벤트
    ───────────────────────────────────────────── */
 const GNB = [
-  {t:'정규반', href:'#/dashboard', match:['dashboard','class']},
+  {t:'정규반', href:'#/dashboard', match:['dashboard','class','learning','reviews','group']},
   {t:'취업', href:'#/career/contest', match:['career']},
-  {t:'Learning', href:'#/learning', match:['learning','reviews','group']},
+  {t:'Learning'},
   {t:'Report'}, {t:'커뮤니티', href:'#/community/notice', match:['community']},
   {t:'현직자 신청'}, {t:'마이페이지'}
 ];
@@ -2241,20 +2242,30 @@ function parse(){
   const h = (location.hash||'#/dashboard').slice(2).split('/');
   return {v:h[0]||'dashboard', a:h[1], b:h[2]};
 }
+const TEAM_ROUTES = ['learning','reviews','group'];
+const REGULAR_ROUTES = ['dashboard','class'].concat(TEAM_ROUTES);
 function subnav(v){
-  if(['learning','reviews','group'].includes(v)){
-    const items = ['공모전','스터디','조별활동','클래스','코딩 테스트','자격증','수료시험','정부교육'];
+  /* 조별활동은 정규반 하위 탭 — 실제 서비스(bdai.co.kr/regular/team-activity/)와 동일한 위치 */
+  if(REGULAR_ROUTES.includes(v)){
+    const onTeam = TEAM_ROUTES.includes(v);
+    const items = [
+      {t:'정규반 홈', href:'#/dashboard'},
+      {t:'조별활동 홈', href:'#/learning'},
+      {t:'정규반 소개'}, {t:'프로젝트반 소개', n:true}, {t:'분반 추천받기', n:true},
+      {t:'강사소개'}, {t:'모집 신청'}
+    ];
     const r = parse();
     const sub = [{id:'home',t:'조별활동 홈',ic:'users'},{id:'logs',t:'활동일지',ic:'book'},{id:'reviews',t:'후기',ic:'message'},{id:'notice',t:'공지',ic:'mega'},{id:'grievance',t:'신문고',ic:'flag'}];
     const cur = v==='learning' ? (r.a||'home') : (v==='reviews' ? 'reviews' : '');
-    return `<div class="subnav"><nav class="subnav-in" aria-label="Learning 메뉴">
-      ${items.map(t=>t==='조별활동'
-        ? `<a class="nav-link" href="#/learning" aria-current="page">${t}</a>`
-        : `<button class="nav-link" type="button" data-act="toast" data-msg="이 데모는 조별활동 탭만 구현했습니다">${t}</button>`).join('')}
+    const isOn = x => x.href==='#/learning' ? onTeam : (x.href==='#/dashboard' ? !onTeam : false);
+    return `<div class="subnav"><nav class="subnav-in" aria-label="정규반 메뉴">
+      ${items.map(x=>x.href
+        ? `<a class="nav-link" href="${x.href}" ${isOn(x)?'aria-current="page"':''}>${x.t}</a>`
+        : `<button class="nav-link" type="button" data-act="toast" data-msg="이 데모는 정규반 > 조별활동 탭만 구현했습니다">${x.t}${x.n?`<span class="badge badge-warning badge-sm" style="margin-left:6px">N</span>`:''}</button>`).join('')}
     </nav>
-    <div class="subnav-2"><div class="subnav-in"><div class="chipset" role="group" aria-label="조별활동 하위 메뉴">
+    ${onTeam ? `<div class="subnav-2"><div class="subnav-in"><div class="chipset" role="group" aria-label="조별활동 하위 메뉴">
       ${sub.map(x=>`<a class="chip" href="${x.id==='home'?'#/learning':'#/learning/'+x.id}" ${cur===x.id?'aria-current="page"':''}>${ic(x.ic,16)}${x.t}</a>`).join('')}
-    </div></div></div></div>`;
+    </div></div></div>` : ''}</div>`;
   }
   if(v==='community'){
     return `<div class="subnav"><nav class="subnav-in" aria-label="커뮤니티 메뉴">
