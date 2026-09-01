@@ -776,7 +776,7 @@ const QNAS = [
 const S = {
   route:{v:'dashboard'},
   f:{ logs:{cls:'all', track:'all', mode:'all', q:''}, rev:{pid:'all', track:'all', cls:'all'},
-      apply:{track:'', mode:'', region:'', picks:[]} },
+      apply:{track:'', mode:'', region:'', picks:[], domains:[]} },
   learningEmpty:false,
   cal:'2026-09',
   modal:null,
@@ -1173,11 +1173,18 @@ function recruitBanner(){
 /* ─────────────────────────────────────────────
    화면 3-1 — 정규반 > 조별활동 > 신청 (레이아웃)
    ───────────────────────────────────────────── */
+/* 공모전 트랙 편성 참고 — 주제 적합성이 갈리면 첫 달부터 이탈 위험이 커진다 */
+const DOMAINS = ['금융 · 핀테크','커머스 · 마케팅','공공 · 정책데이터','의료 · 헬스케어',
+                 '제조 · 물류','미디어 · 콘텐츠','모빌리티 · 교통','환경 · 에너지',
+                 'AI · LLM 서비스','상관없음'];
+const DOMAIN_MAX = 3;
+
 function viewApply(){
   const R = RECRUIT, st = recruitState();
   const f = S.f.apply, picked = !!(f.track && f.mode);
   const needRegion = f.mode==='대면' && !f.region;
   const needPick = picked && f.picks.length===0;
+  const needDomain = f.track==='contest' && f.domains.length===0;
   const mine = R.items.filter(x => isMyClass(x.classId));
   const hidden = R.items.length - mine.length;
   const shown = mine.filter(x => !f.track || x.track===f.track);
@@ -1328,6 +1335,19 @@ function viewApply(){
               : '참여 트랙을 고르면 신청 가능한 활동이 표시됩니다.'}</p></div>`}
       </div>
 
+      ${f.track==='contest' ? `
+      <div class="field">
+        <span>관심 도메인
+          <span class="badge ${f.domains.length?'badge-brand':'badge-danger'} badge-sm">${f.domains.length?f.domains.length+'개 선택':'필수'}</span>
+          <span class="badge badge-muted badge-sm">최대 ${DOMAIN_MAX}개</span></span>
+        <span class="caption">공모전 트랙은 분반과 무관하게 편성되므로, <strong>관심 주제가 맞는 조원끼리</strong> 묶는 데 씁니다.
+          9월 첫 과제가 참가 공모전 선정이라 주제가 갈리면 초반에 이탈이 생깁니다. 정하지 못했다면 <strong>상관없음</strong>을 고르세요.</span>
+        <div class="chipset daychips" role="group" aria-label="관심 도메인" style="margin-top:var(--sp-2)">
+          ${DOMAINS.map(d=>`<button class="chip" type="button" aria-pressed="${f.domains.indexOf(d)>=0}"
+            data-act="apply-domain" data-val="${esc(d)}">${esc(d)}</button>`).join('')}
+        </div>
+      </div>` : ''}
+
       <div class="formgrid">
         ${f.mode==='대면' ? `
         <label class="field"><span>거주지역
@@ -1358,13 +1378,14 @@ function viewApply(){
 
       ${callout('info','message',`조 편성 결과는 <strong>${esc(ME.name)}_${ME.tail}</strong> 식별자로 조회합니다.
         공지 오픈채팅방 닉네임도 같은 형식(<strong>이름_전화번호 뒷 4자리</strong>)으로 맞춰 주세요.`)}
+      ${needDomain ? callout('warn','help','<strong>관심 도메인을 1개 이상 골라 주세요.</strong> 공모전 트랙은 분반 기준이 없어 주제 적합성이 편성의 주요 근거입니다.') : ''}
       ${needRegion ? callout('warn','help','<strong>거주지역을 선택해 주세요.</strong> 대면 활동은 거주지역이 편성 1순위라 이 값이 없으면 조를 배정할 수 없습니다.') : ''}
       <div class="submitbar">
         <p class="small">제출 후 조 편성 발표(${fmt(R.formed)}) 전까지 수정할 수 있습니다.</p>
         <div class="row">
           <button class="btn btn-secondary" type="button" data-act="toast" data-msg="레이아웃 단계 — 임시저장은 아직 연결하지 않았습니다">임시저장</button>
-          <button class="btn btn-primary btn-lg" type="button" ${(!picked||needPick||needRegion)?'disabled aria-disabled="true"':''}
-            data-act="toast" data-msg="${!picked?'참여 트랙과 활동 형태를 먼저 골라 주세요':(needPick?'신청할 조별활동을 선택해 주세요':(needRegion?'거주지역을 먼저 선택해 주세요':'레이아웃 단계 — 제출 동작은 아직 연결하지 않았습니다'))}">신청서 제출${f.picks.length?` (${f.picks.length}개)`:''}</button>
+          <button class="btn btn-primary btn-lg" type="button" ${(!picked||needPick||needDomain||needRegion)?'disabled aria-disabled="true"':''}
+            data-act="toast" data-msg="${!picked?'참여 트랙과 활동 형태를 먼저 골라 주세요':(needPick?'신청할 조별활동을 선택해 주세요':(needDomain?'관심 도메인을 1개 이상 골라 주세요':(needRegion?'거주지역을 먼저 선택해 주세요':'레이아웃 단계 — 제출 동작은 아직 연결하지 않았습니다')))}">신청서 제출${f.picks.length?` (${f.picks.length}개)`:''}</button>
         </div>
       </div>
     </section>
@@ -2681,10 +2702,17 @@ document.addEventListener('click', e=>{
   else if(act==='scroll'){ const el = document.getElementById(t.dataset.to);
     if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
   else if(act==='chip'){ S.f[t.dataset.scope][t.dataset.key] = t.dataset.val;
-    if(t.dataset.scope==='apply' && t.dataset.key==='track') S.f.apply.picks = [];
+    if(t.dataset.scope==='apply' && t.dataset.key==='track'){ S.f.apply.picks = []; S.f.apply.domains = []; }
     render(); }
   else if(act==='apply-item'){ const p = S.f.apply.picks, i = p.indexOf(t.dataset.id);
     if(i<0) p.push(t.dataset.id); else p.splice(i,1); render(); }
+  else if(act==='apply-domain'){
+    const v = t.dataset.val; let d = S.f.apply.domains; const i = d.indexOf(v);
+    if(i>=0){ d.splice(i,1); }
+    else if(v==='상관없음'){ S.f.apply.domains = ['상관없음']; }
+    else if(d.length >= DOMAIN_MAX){ toast(`관심 도메인은 최대 ${DOMAIN_MAX}개까지 고를 수 있어요`); return; }
+    else { S.f.apply.domains = d.filter(x=>x!=='상관없음').concat(v); }
+    render(); }
   else if(act==='like'){ const r = REVIEWS.find(x=>x.id===t.dataset.id);
     r.liked = !r.liked; r.likes += r.liked?1:-1; render(); }
   else if(act==='switch-cycle'){
